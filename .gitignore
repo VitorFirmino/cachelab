@@ -2,13 +2,14 @@
 
 # dependencies
 /node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+/.pnpm
+.pnpm.*
+/.pnpm-store/
+
+# local tooling/config (usually machine-specific; can include tokens)
+.mcp.json
+.npmrc
+/.playwright-mcp/
 
 # testing
 /coverage
@@ -32,6 +33,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+!.env.template
 
 # vercel
 .vercel
@@ -39,3 +42,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# playwright
+/.playwright-report/
+/test-results/

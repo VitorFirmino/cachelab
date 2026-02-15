@@ -1,0 +1,50 @@
+import { getCategories, getProductsPage } from "@/service/data";
+
+import { ProductsClient } from "./products-client";
+
+interface ProductsContentProps {
+  searchParams: Promise<{ page?: string; category?: string; query?: string; q?: string }>;
+}
+
+export async function ProductsContent({ searchParams }: ProductsContentProps) {
+  const resolvedParams = await searchParams;
+
+  const parseNumberParam = (value: string | undefined, fallback: number) => {
+    if (!value) return fallback;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const page = parseNumberParam(resolvedParams?.page, 1);
+  const category = resolvedParams?.category
+    ? parseNumberParam(resolvedParams.category, NaN)
+    : NaN;
+  const categoryId = Number.isFinite(category) ? category : undefined;
+  const query = resolvedParams?.query?.trim() || resolvedParams?.q?.trim() || "";
+  const pageSize = 10;
+
+  const [productsResult, categories] = await Promise.all([
+    getProductsPage({ page, pageSize, categoryId, query }),
+    getCategories(),
+  ]);
+
+  const initialProducts = JSON.parse(JSON.stringify({
+    items: productsResult.items,
+    total: productsResult.total,
+    page,
+    pageSize,
+  }));
+
+  const initialCategories = JSON.parse(JSON.stringify(categories));
+
+  return (
+    <ProductsClient
+      initialProducts={initialProducts}
+      initialCategories={initialCategories}
+      page={page}
+      pageSize={pageSize}
+      categoryId={categoryId}
+      query={query}
+    />
+  );
+}
