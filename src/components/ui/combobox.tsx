@@ -29,7 +29,6 @@ export function Combobox({
   className,
 }: ComboboxProps) {
   const listboxId = useId();
-  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -44,8 +43,6 @@ export function Combobox({
   const filtered = search
     ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
     : options;
-
-  useEffect(() => { setMounted(true); }, []);
 
   // Position the portal dropdown relative to the trigger button
   useLayoutEffect(() => {
@@ -185,6 +182,7 @@ export function Combobox({
       </div>
     </div>
   );
+  const portalTarget = typeof document !== "undefined" ? document.body : null;
 
   return (
     <div className={cn("relative", className)} onKeyDown={handleKeyDown}>
@@ -214,7 +212,7 @@ export function Combobox({
         />
       </button>
 
-      {mounted && createPortal(dropdown, document.body)}
+      {portalTarget && createPortal(dropdown, portalTarget)}
     </div>
   );
 }
