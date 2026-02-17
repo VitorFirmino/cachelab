@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img alt="CacheLab preview" src=".github/screenshot.png" width="900" />
+  <img alt="CacheLab preview desktop" src=".github/screenshot-desktop.png" width="900" />
 </p>
 
 ---
