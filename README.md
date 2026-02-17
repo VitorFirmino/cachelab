@@ -38,6 +38,10 @@ CacheLab é uma loja online fictícia construída para estudar e demonstrar estr
 
 O painel admin permite criar produtos, alterar preços/estoque e observar em tempo real como cada camada reage às mutações. Há também um **carrinho de compras** com checkout simulado que demonstra a invalidação de cache após mutações (vendas).
 
+Além do fluxo de cache, o app já inclui **metadata routes para SEO técnico**:
+- `src/app/robots.ts` com regras por ambiente (produção vs preview/dev)
+- `src/app/sitemap.ts` com geração dinâmica de URLs estáticas e produtos paginados
+
 ## 💻 Pré-requisitos
 
 É necessário ter instalado na sua máquina:
@@ -67,6 +71,7 @@ Preencha o `.env` com no mínimo:
 
 | Variável | Descrição |
 |----------|-----------|
+| `NEXT_PUBLIC_SITE_URL` | URL canônica do site (usada em `robots` e `sitemap`) |
 | `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Chave pública (ou `ANON_KEY`) |
 | `DATABASE_URL` | Connection string do Postgres (para Prisma) |
@@ -113,7 +118,10 @@ $ pnpm build && pnpm start
 | GET | `/product/:id` | Detalhe do produto |
 | GET | `/admin` | Painel admin (CRUD de produtos/eventos) |
 | GET | `/admin/stats` | Dashboard de cache (TTLs, eventos, purge) |
+| GET | `/stats` | Atalho que redireciona para `/admin/stats` |
 | GET | `/login` | Autenticação via Supabase |
+| GET | `/robots.txt` | Regras de indexação (dinâmicas por ambiente) |
+| GET | `/sitemap.xml` | Sitemap dinâmico com páginas e produtos |
 
 **API Routes:**
 
