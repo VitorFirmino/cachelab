@@ -1,5 +1,4 @@
 import "dotenv/config";
-import { Prisma } from "@prisma/client";
 
 import { prisma } from "../src/lib/prisma";
 
@@ -128,7 +127,7 @@ async function main() {
       });
     }
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
+    if (isPrismaErrorWithCode(error, "P2021")) {
       console.warn(
         [
           "WARNING: CacheConfig table does not exist yet, skipping cache defaults seed.",
@@ -143,6 +142,11 @@ async function main() {
   console.log(
     `Seeded ${createdCategories.length} categories, ${products.length} products, ${events.length} events.`,
   );
+}
+
+function isPrismaErrorWithCode(error: unknown, code: string): boolean {
+  if (!error || typeof error !== "object") return false;
+  return "code" in error && (error as { code?: unknown }).code === code;
 }
 
 main()
