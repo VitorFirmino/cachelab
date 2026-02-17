@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { Analytics } from "@vercel/analytics/react";
+
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { CacheIndicator } from "@/components/cache-indicator";
@@ -21,6 +23,7 @@ export default function RootLayout({
         <AppShell>{children}</AppShell>
         <CacheIndicator />
         <SonnerToaster />
+        <Analytics />
       </body>
     </html>
   );
