@@ -37,12 +37,14 @@ export async function GET(request: Request) {
   const pageSize = Number(url.searchParams.get("pageSize") || 10);
   const categoryId = url.searchParams.get("categoryId");
   const query = url.searchParams.get("query")?.trim() || url.searchParams.get("q")?.trim() || undefined;
+  const cacheBust = url.searchParams.get("_r") || undefined;
 
   const { items, total } = await getProductsPage({
     page,
     pageSize,
     categoryId: categoryId && !Number.isNaN(Number(categoryId)) ? Number(categoryId) : undefined,
     query,
+    cacheBust,
   });
 
   return NextResponse.json(

@@ -30,11 +30,13 @@ export async function getProductsPage({
   pageSize,
   categoryId,
   query,
+  cacheBust,
 }: {
   page: number;
   pageSize: number;
   categoryId?: number;
   query?: string;
+  cacheBust?: string;
 }) {
   "use cache";
   cacheLife(await getCacheTTL("products"));
@@ -47,6 +49,7 @@ export async function getProductsPage({
       pageSize,
       categoryId,
       query: search,
+      cacheBust,
     });
   } catch {
     return { items: [], total: 0 };

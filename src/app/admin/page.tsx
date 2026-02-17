@@ -38,7 +38,7 @@ export default async function AdminPage() {
         <div className="mt-4">
           <PrefetchLink
             href="/admin/stats"
-            className="group block rounded-2xl border border-border bg-[color:var(--card)] p-5 backdrop-blur-xl transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] hover:-translate-y-1 hover:border-[rgba(79,125,255,0.25)] hover:shadow-[0_0_30px_rgba(79,125,255,0.1),0_8px_32px_rgba(0,0,0,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(79,125,255,0.45)] focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-6"
+            className="group block rounded-2xl border border-border bg-card p-5 backdrop-blur-xl transition-all duration-400 ease-in-out hover:-translate-y-1 hover:border-[rgba(79,125,255,0.25)] hover:shadow-[0_0_30px_rgba(79,125,255,0.1),0_8px_32px_rgba(0,0,0,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(79,125,255,0.45)] focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-6"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-3">
@@ -69,6 +69,7 @@ export default async function AdminPage() {
         <AdminClient
           categories={categories.map((category) => ({ id: category.id, name: category.name }))}
           products={products.map((product) => ({ id: product.id, name: product.name }))}
+          userEmail={user.email ?? undefined}
         />
       </div>
     </div>

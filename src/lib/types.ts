@@ -39,3 +39,8 @@ export interface FeaturedData {
   products: Product[];
 }
 
+export interface OrderSummary {
+  items: { name: string; quantity: number; total: number }[];
+  total: number;
+}
+

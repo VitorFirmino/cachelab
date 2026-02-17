@@ -15,12 +15,12 @@ export function CacheBadge({ status }: { status: CacheStatus }) {
   const data = statusMap[status] ?? statusMap.UNKNOWN;
 
   const dotColors: Record<CacheStatus, string> = {
-    HIT: "bg-[color:var(--success)] shadow-[0_0_6px_var(--success)]",
-    STALE: "bg-[color:var(--warning)] shadow-[0_0_6px_var(--warning)]",
-    REVALIDATING: "bg-[color:var(--warning)] shadow-[0_0_6px_var(--warning)] animate-pulse",
-    BYPASS: "bg-[color:var(--muted-foreground)] shadow-[0_0_6px_rgba(123,139,163,0.5)]",
-    ERROR: "bg-[color:var(--destructive)] shadow-[0_0_6px_var(--destructive)] animate-pulse",
-    UNKNOWN: "bg-[color:var(--muted-foreground)]",
+    HIT: "bg-success shadow-[0_0_6px_var(--success)]",
+    STALE: "bg-warning shadow-[0_0_6px_var(--warning)]",
+    REVALIDATING: "bg-warning shadow-[0_0_6px_var(--warning)] animate-pulse",
+    BYPASS: "bg-muted-foreground shadow-[0_0_6px_rgba(123,139,163,0.5)]",
+    ERROR: "bg-destructive shadow-[0_0_6px_var(--destructive)] animate-pulse",
+    UNKNOWN: "bg-muted-foreground",
   };
 
   return (

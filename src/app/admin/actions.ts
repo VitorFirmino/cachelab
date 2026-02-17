@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { refresh, revalidatePath, revalidateTag, updateTag } from "next/cache";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
@@ -29,9 +29,9 @@ export async function createProduct(formData: FormData) {
 
     revalidatePath("/");
     revalidatePath("/products");
-    revalidateTag("featured", "max");
-    revalidateTag("products", "max");
-    revalidateTag(`product:${product.id}`, "max");
+    updateTag("featured");
+    updateTag("products");
+    updateTag(`product:${product.id}`);
 
     return {
       ok: true,
@@ -61,9 +61,9 @@ export async function updateProduct(formData: FormData) {
 
     revalidatePath("/");
     revalidatePath("/products");
-    revalidateTag("featured", "max");
-    revalidateTag("products", "max");
-    revalidateTag(`product:${product.id}`, "max");
+    updateTag("featured");
+    updateTag("products");
+    updateTag(`product:${product.id}`);
 
     return { ok: true, message: `Produto ${product.name} atualizado.` };
   } catch (error) {
@@ -93,16 +93,42 @@ export async function createEvent(formData: FormData) {
 
     revalidatePath("/");
     revalidatePath("/products");
-    revalidateTag("pulse", "max");
-    revalidateTag("products", "max");
+    updateTag("pulse");
+    updateTag("products");
+    updateTag("events");
     if (event.productId) {
-      revalidateTag(`product:${event.productId}`, "max");
+      updateTag(`product:${event.productId}`);
+      revalidatePath(`/product/${event.productId}`);
     }
 
     return { ok: true, message: "Evento criado." };
   } catch (error) {
     console.error(error);
     return { ok: false, message: "Falha ao criar evento." };
+  }
+}
+
+export async function deleteProduct(productId: number) {
+  try {
+    if (Number.isNaN(productId)) {
+      return { ok: false, message: "ID do produto inválido." };
+    }
+
+    await prisma.event.deleteMany({ where: { productId } });
+    const product = await prisma.product.delete({ where: { id: productId } });
+
+    revalidatePath("/");
+    revalidatePath("/products");
+    updateTag("featured");
+    updateTag("products");
+    updateTag("events");
+    updateTag(`product:${productId}`);
+    refresh();
+
+    return { ok: true, message: `Produto "${product.name}" apagado.` };
+  } catch (error) {
+    console.error(error);
+    return { ok: false, message: "Falha ao apagar produto." };
   }
 }
 

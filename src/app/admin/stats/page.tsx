@@ -62,21 +62,21 @@ export default async function AdminStatsPage() {
 
       <div className="grid gap-5 md:grid-cols-3 animate-in delay-1">
         <div className="stat-card rounded-2xl border border-border bg-card p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(79,125,255,0.25)]">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Total de Produtos</div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Total de Produtos</div>
           <div className="stat-value">
             <div className="text-3xl font-extrabold text-accent-cyan neon-text-cyan">{productCount}</div>
           </div>
         </div>
 
         <div className="stat-card rounded-2xl border border-border bg-card p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(79,125,255,0.25)]">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Eventos (24h)</div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Eventos (24h)</div>
           <div className="stat-value">
             <div className="text-3xl font-extrabold text-accent-cyan neon-text-cyan">{eventCount}</div>
           </div>
         </div>
 
         <div className="stat-card rounded-2xl border border-border bg-card p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(79,125,255,0.25)]">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Uptime do Processo</div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Uptime do Processo</div>
           <div className="stat-value">
             <div className="text-3xl font-extrabold text-accent-cyan neon-text-cyan">{uptimeFormatted}</div>
             <div className="text-xs font-mono text-muted-foreground mt-1">{uptimeSeconds} segundos</div>

@@ -31,10 +31,24 @@ export function cacheSet<T>(key: string, data: T, ttlMs: number): void {
   });
 }
 
+let version = 0;
+const listeners = new Set<() => void>();
+
 export function cacheClear(): void {
   store.clear();
   hits = 0;
   misses = 0;
+  version++;
+  for (const listener of listeners) listener();
+}
+
+export function cacheSubscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
+export function cacheGetVersion() {
+  return version;
 }
 
 export function cacheStats() {

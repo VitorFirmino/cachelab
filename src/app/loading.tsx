@@ -17,7 +17,7 @@ export default function LoadingHome() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className={`rounded-2xl border border-border bg-[color:var(--card)] overflow-hidden animate-in delay-${Math.min(i + 2, 8)}`}
+              className={`rounded-2xl border border-border bg-card overflow-hidden animate-in delay-${Math.min(i + 2, 8)}`}
             >
               <Skeleton className="h-32 w-full rounded-none" />
               <div className="p-5 space-y-3">

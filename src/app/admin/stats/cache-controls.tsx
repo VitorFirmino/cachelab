@@ -49,8 +49,9 @@ export function CacheControls({ initialConfigs }: CacheControlsProps) {
   const updateField = (id: string, field: "stale" | "revalidate" | "expire", value: number) => {
     setRowErrors((prev) => {
       if (!prev[id]) return prev;
-      const { [id]: _removed, ...rest } = prev;
-      return rest;
+      const next = { ...prev };
+      delete next[id];
+      return next;
     });
     setConfigs((prev) =>
       prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)),
@@ -63,8 +64,9 @@ export function CacheControls({ initialConfigs }: CacheControlsProps) {
       toast.success(result.message);
       setRowErrors((prev) => {
         if (!prev[cfg.id]) return prev;
-        const { [cfg.id]: _removed, ...rest } = prev;
-        return rest;
+        const next = { ...prev };
+        delete next[cfg.id];
+        return next;
       });
       // Mark this row as clean locally so the action button disappears without a full refresh.
       setOriginal((prev) =>
@@ -128,7 +130,7 @@ export function CacheControls({ initialConfigs }: CacheControlsProps) {
           <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">
             TTLs Configurados
           </p>
-          <p className="text-[10px] text-muted-foreground mb-3">stale / revalidate / expire (segundos)</p>
+          <p className="text-xs text-muted-foreground mb-3">stale / revalidate / expire (segundos)</p>
           <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
             {configs.map((cfg) => (
               <div
@@ -140,11 +142,11 @@ export function CacheControls({ initialConfigs }: CacheControlsProps) {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-muted-foreground">{cfg.label}</span>
-                  <span className="text-[10px] font-mono text-muted-foreground/60">{cfg.id}</span>
+                  <span className="text-xs font-mono text-muted-foreground/60">{cfg.id}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 space-y-0.5">
-                    <label className="text-[10px] text-muted-foreground">stale</label>
+                    <label className="text-xs text-muted-foreground">stale</label>
                     <Input
                       type="number"
                       min={0}
@@ -162,7 +164,7 @@ export function CacheControls({ initialConfigs }: CacheControlsProps) {
                     />
                   </div>
                   <div className="flex-1 space-y-0.5">
-                    <label className="text-[10px] text-muted-foreground">reval</label>
+                    <label className="text-xs text-muted-foreground">reval</label>
                     <Input
                       type="number"
                       min={0}
@@ -180,7 +182,7 @@ export function CacheControls({ initialConfigs }: CacheControlsProps) {
                     />
                   </div>
                   <div className="flex-1 space-y-0.5">
-                    <label className="text-[10px] text-muted-foreground">expire</label>
+                    <label className="text-xs text-muted-foreground">expire</label>
                     <Input
                       type="number"
                       min={0}
@@ -291,19 +293,19 @@ export function CacheControls({ initialConfigs }: CacheControlsProps) {
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-lg border border-border bg-[rgba(17,27,46,0.2)] p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">stale</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">stale</div>
                   <div className="font-mono text-xs">
                     {confirmingOrig.stale} → {confirmingCfg.stale}
                   </div>
                 </div>
                 <div className="rounded-lg border border-border bg-[rgba(17,27,46,0.2)] p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">revalidate</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">revalidate</div>
                   <div className="font-mono text-xs">
                     {confirmingOrig.revalidate} → {confirmingCfg.revalidate}
                   </div>
                 </div>
                 <div className="rounded-lg border border-border bg-[rgba(17,27,46,0.2)] p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">expire</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">expire</div>
                   <div className="font-mono text-xs">
                     {confirmingOrig.expire} → {confirmingCfg.expire}
                   </div>

@@ -23,6 +23,7 @@ test.describe("Admin CRUD", () => {
     await expect(page.getByRole("tab", { name: "Criar Produto" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Atualizar Produto" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Criar Evento" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Apagar Produto" })).toBeVisible();
   });
 
   test("Criar produto", async ({ page }) => {
@@ -85,6 +86,36 @@ test.describe("Admin CRUD", () => {
     await page.locator('[aria-label="Mensagem do evento"]').fill("Evento de teste E2E");
     await page.getByRole("button", { name: "Criar Evento" }).click();
     await expect(page.getByText(/Evento criado/i)).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("Apagar produto criado", async ({ page }) => {
+    // 1) Criar produto temporário
+    const name = `Deletar E2E ${Date.now()}`;
+    await page.getByRole("tab", { name: "Criar Produto" }).click();
+    await page.locator('[aria-label="Nome do produto"]').fill(name);
+    await page.locator('[aria-label="Preço do produto"]').fill("1.00");
+    await page.locator('[aria-label="Estoque do produto"]').fill("1");
+    await page.getByRole("button", { name: "Criar Produto" }).click();
+    await expect(page.getByText(/criado/i)).toBeVisible({ timeout: 15_000 });
+
+    // 2) Ir para aba Apagar e selecionar o produto
+    await page.getByRole("tab", { name: "Apagar Produto" }).click();
+    await comboboxSelect(page, "Selecionar produto para apagar", name);
+
+    // 3) Clicar em Apagar e confirmar no dialog
+    await page.getByRole("button", { name: "Apagar Produto" }).click();
+    await expect(page.getByText("Confirmar Exclusão")).toBeVisible();
+    const dialog = page.getByRole("alertdialog").or(page.getByRole("dialog"));
+    await expect(dialog.getByText(name)).toBeVisible(); // nome aparece no dialog
+    await page.getByRole("button", { name: "Apagar definitivamente" }).click();
+    await expect(page.getByText(/apagado/i)).toBeVisible({ timeout: 15_000 });
+
+    // 4) Dialog deve fechar
+    await expect(page.getByText("Confirmar Exclusão")).not.toBeVisible();
+
+    // 5) Produto não aparece mais na listagem
+    await page.goto(`/products?query=${encodeURIComponent(name)}`);
+    await expect(page.getByText(name)).not.toBeVisible({ timeout: 10_000 });
   });
 
   test("Link para Estatísticas existe", async ({ page }) => {

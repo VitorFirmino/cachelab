@@ -34,8 +34,9 @@ CacheLab é uma loja online fictícia construída para estudar e demonstrar estr
 | **Invalidação explícita** | Server Actions | `revalidatePath()`, `revalidateTag()` |
 | **HTTP / CDN** | API Routes + Edge | `Cache-Control`, `s-maxage`, `stale-while-revalidate` |
 | **Client-side** | Hooks React | Cache em memória com TTL configurável |
+| **State (Zustand)** | Client (persist) | Carrinho persistido em `localStorage` |
 
-O painel admin permite criar produtos, alterar preços/estoque e observar em tempo real como cada camada reage às mutações.
+O painel admin permite criar produtos, alterar preços/estoque e observar em tempo real como cada camada reage às mutações. Há também um **carrinho de compras** com checkout simulado que demonstra a invalidação de cache após mutações (vendas).
 
 ## 💻 Pré-requisitos
 
@@ -99,6 +100,8 @@ $ pnpm build && pnpm start
 - **Cache-Control headers** — `s-maxage`, `stale-while-revalidate` nas API Routes
 - **Edge Functions** — Lógica no edge (Supabase/Deno) com cache HTTP
 - **Client-side caching** — Hooks React com cache em memória e TTL configurável
+- **Zustand + persist** — Carrinho de compras persistido em `localStorage`
+- **Server Actions** — Checkout transacional com validação de estoque e invalidação de cache
 - **Cache observability** — Dashboard admin para monitorar e ajustar TTLs em tempo real
 
 ## 🧭 Rotas
@@ -143,12 +146,17 @@ src/
 │   ├── product/[id]/             # Detalhe do produto
 │   ├── admin/                    # Painel admin (CRUD + invalidação)
 │   │   └── stats/                # Dashboard de cache (TTLs, eventos, purge)
+│   ├── actions/                  # Server Actions (checkout)
 │   ├── login/                    # Autenticação via Supabase
 │   └── api/                      # API Routes com Cache-Control headers
 ├── components/                   # Componentes reutilizáveis + shadcn/ui
+│   ├── add-to-cart-button.tsx    # Botão de adicionar ao carrinho
+│   └── cart-sheet.tsx            # Sheet do carrinho + checkout
 ├── hooks/                        # Hooks com cache client-side (TTL)
 ├── lib/                          # Auth, Prisma, cache config, utilitários
 │   └── supabase/                 # Clients Supabase (browser + server)
+├── store/                        # State management (Zustand)
+│   └── cart-store.ts             # Carrinho persistido em localStorage
 └── service/                      # Camada de dados ("use cache") e API client
 
 supabase/functions/
@@ -168,7 +176,7 @@ Category 1──N Product 1──N Event
 
 - **Product** — nome, preço, estoque, categoria
 - **Category** — agrupamento de produtos
-- **Event** — log de ações (`restock`, `price_change`, `pulse`)
+- **Event** — log de ações (`restock`, `price_change`, `sale`, `pulse`)
 - **CacheConfig** — TTLs configuráveis por perfil
 
 ## 🌐 Edge Functions (Supabase)
@@ -205,7 +213,7 @@ Para testes do admin, crie o usuário de teste:
 $ npx tsx scripts/create-admin.ts
 ```
 
-Os testes cobrem: páginas públicas, navegação, filtros, CRUD admin, invalidação de cache, headers HTTP, auth e API routes.
+Os testes cobrem: páginas públicas, navegação, filtros, carrinho, checkout, consistência de estoque, CRUD admin, invalidação de cache, headers HTTP, auth e API routes.
 
 ## 🔧 Scripts
 
@@ -230,6 +238,7 @@ Os testes cobrem: páginas públicas, navegação, filtros, CRUD admin, invalida
 - [shadcn/ui](https://ui.shadcn.com/) — Componentes UI (Radix primitives)
 - [Prisma](https://www.prisma.io/) — ORM para PostgreSQL
 - [Supabase](https://supabase.com/) — Auth, Postgres e Edge Functions
+- [Zustand](https://zustand.docs.pmnd.rs/) — State management (carrinho)
 - [Playwright](https://playwright.dev/) — Testes E2E
 
 ## 🔗 Referências

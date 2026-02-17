@@ -61,7 +61,7 @@ export function ProductsFilterBar({ categoryId, initialQuery }: ProductsFilterBa
             placeholder="Buscar produto..."
             defaultValue={query}
             aria-label="Buscar produto"
-            className="max-w-[260px]"
+            className="max-w-64"
             onChange={(event) => setQuery(event.target.value)}
           />
           <Button type="submit" variant="secondary" size="sm" disabled={isPending}>

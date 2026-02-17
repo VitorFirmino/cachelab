@@ -27,14 +27,21 @@ export function setCacheTTLOverride(profile: CacheProfile, ttl: CacheTTL) {
 export async function getCacheTTL(profile: CacheProfile): Promise<CacheTTL> {
   const override = OVERRIDES.get(profile);
   if (override) {
-    const { updatedAt: _updatedAt, ...ttl } = override;
-    return ttl;
+    return {
+      stale: override.stale,
+      revalidate: override.revalidate,
+      expire: override.expire,
+    };
   }
 
   // During `next build` we don't want to depend on DB connectivity/migrations.
   if (process.env.CACHELAB_DISABLE_DB === "1") {
-    const { label: _label, ...ttl } = DEFAULT_META[profile];
-    return ttl;
+    const meta = DEFAULT_META[profile];
+    return {
+      stale: meta.stale,
+      revalidate: meta.revalidate,
+      expire: meta.expire,
+    };
   }
 
   try {
@@ -45,8 +52,12 @@ export async function getCacheTTL(profile: CacheProfile): Promise<CacheTTL> {
   } catch {
     // DB unavailable — fall back to defaults
   }
-  const { label: _label, ...ttl } = DEFAULT_META[profile];
-  return ttl;
+  const meta = DEFAULT_META[profile];
+  return {
+    stale: meta.stale,
+    revalidate: meta.revalidate,
+    expire: meta.expire,
+  };
 }
 
 export async function getAllCacheConfigs() {

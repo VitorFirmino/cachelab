@@ -9,9 +9,12 @@ import type { Category } from "@/lib/types";
 const CACHE_KEY = "/api/categories?";
 
 export function useCategories(initialData?: Category[]) {
-  const initialCachedData = initialData ?? cacheGet<Category[]>(CACHE_KEY);
-  const [data, setData] = useState<Category[] | null>(initialCachedData);
-  const [isLoading, setIsLoading] = useState(!initialCachedData);
+  const initialCachedData = cacheGet<Category[]>(CACHE_KEY);
+  const [fetchedData, setFetchedData] = useState<Category[] | null>(
+    initialData ?? initialCachedData,
+  );
+  const data = initialData ?? fetchedData;
+  const [isLoading, setIsLoading] = useState(!data);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -29,7 +32,7 @@ export function useCategories(initialData?: Category[]) {
       setError(null);
       try {
         const result = await cachedGet<Category[]>("/categories", {}, CACHE_TTL.categories);
-        if (!cancelled) setData(result);
+        if (!cancelled) setFetchedData(result);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
@@ -46,7 +49,7 @@ export function useCategories(initialData?: Category[]) {
     setError(null);
     try {
       const result = await cachedGet<Category[]>("/categories", {}, CACHE_TTL.categories);
-      setData(result);
+      setFetchedData(result);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
@@ -54,5 +57,5 @@ export function useCategories(initialData?: Category[]) {
     }
   }, []);
 
-  return { data, isLoading, error, refresh };
+  return { data, isLoading: initialData ? false : isLoading, error, refresh };
 }

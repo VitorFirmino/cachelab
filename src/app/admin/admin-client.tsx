@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { createEvent, createProduct, updateProduct } from "@/app/admin/actions";
+import { createEvent, createProduct, deleteProduct, updateProduct } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
@@ -17,13 +17,16 @@ export type AdminOption = { id: number; name: string };
 interface AdminClientProps {
   categories: AdminOption[];
   products: AdminOption[];
+  userEmail?: string;
 }
 
-export function AdminClient({ categories, products }: AdminClientProps) {
+export function AdminClient({ categories, products, userEmail }: AdminClientProps) {
   const [isPending, startTransition] = useTransition();
   const [createForm, setCreateForm] = useState({ name: "", price: "", stock: "", categoryId: "" });
   const [updateForm, setUpdateForm] = useState({ id: "", price: "", stock: "" });
   const [eventForm, setEventForm] = useState({ type: "restock", message: "", productId: "" });
+  const [deleteProductId, setDeleteProductId] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleCreate = () => {
     const formData = new FormData();
@@ -76,6 +79,20 @@ export function AdminClient({ categories, products }: AdminClientProps) {
     });
   };
 
+  const handleDelete = () => {
+    const id = Number(deleteProductId);
+    startTransition(async () => {
+      const result = await deleteProduct(id);
+      setDeleteDialogOpen(false);
+      if (result.ok) {
+        toast.success(result.message);
+        setDeleteProductId("");
+      } else {
+        toast.error(result.message);
+      }
+    });
+  };
+
   const categoryOptions: ComboboxOption[] = [
     { value: "", label: "Nenhuma (opcional)" },
     ...categories.map((c) => ({ value: String(c.id), label: c.name })),
@@ -103,6 +120,7 @@ export function AdminClient({ categories, products }: AdminClientProps) {
         <TabsTrigger value="create">Criar Produto</TabsTrigger>
         <TabsTrigger value="update">Atualizar Produto</TabsTrigger>
         <TabsTrigger value="event">Criar Evento</TabsTrigger>
+        <TabsTrigger value="delete">Apagar Produto</TabsTrigger>
       </TabsList>
 
       <TabsContent value="create">
@@ -111,7 +129,7 @@ export function AdminClient({ categories, products }: AdminClientProps) {
             <h3 className="text-base font-semibold">Novo Produto</h3>
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Nome</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Nome</label>
                 <Input
                   placeholder="Ex: MacBook Pro M4"
                   aria-label="Nome do produto"
@@ -120,7 +138,7 @@ export function AdminClient({ categories, products }: AdminClientProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Preço (R$)</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Preço (R$)</label>
                 <Input
                   placeholder="0.00"
                   type="number"
@@ -131,7 +149,7 @@ export function AdminClient({ categories, products }: AdminClientProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Estoque</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Estoque</label>
                 <Input
                   placeholder="0"
                   type="number"
@@ -141,7 +159,7 @@ export function AdminClient({ categories, products }: AdminClientProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Categoria</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Categoria</label>
                 <Combobox
                   options={categoryOptions}
                   value={createForm.categoryId}
@@ -164,7 +182,7 @@ export function AdminClient({ categories, products }: AdminClientProps) {
             <h3 className="text-base font-semibold">Atualizar Produto</h3>
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Produto</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Produto</label>
                 <Combobox
                   options={productOptions}
                   value={updateForm.id}
@@ -174,7 +192,7 @@ export function AdminClient({ categories, products }: AdminClientProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Novo Preço (R$)</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Novo Preço (R$)</label>
                 <Input
                   placeholder="0.00"
                   type="number"
@@ -185,7 +203,7 @@ export function AdminClient({ categories, products }: AdminClientProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Novo Estoque</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Novo Estoque</label>
                 <Input
                   placeholder="0"
                   type="number"
@@ -226,7 +244,7 @@ export function AdminClient({ categories, products }: AdminClientProps) {
             <h3 className="text-base font-semibold">Criar Evento</h3>
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Tipo</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Tipo</label>
                 <Combobox
                   options={eventTypeOptions}
                   value={eventForm.type}
@@ -236,7 +254,7 @@ export function AdminClient({ categories, products }: AdminClientProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Produto (opcional)</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Produto (opcional)</label>
                 <Combobox
                   options={eventProductOptions}
                   value={eventForm.productId}
@@ -246,7 +264,7 @@ export function AdminClient({ categories, products }: AdminClientProps) {
                 />
               </div>
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Mensagem</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">Mensagem</label>
                 <Input
                   placeholder="Descreva o evento..."
                   aria-label="Mensagem do evento"
@@ -258,6 +276,50 @@ export function AdminClient({ categories, products }: AdminClientProps) {
             <Button onClick={handleEvent} disabled={isPending} className="cta-btn">
               {isPending ? "Salvando..." : "Criar Evento"}
             </Button>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="delete">
+        <Card>
+          <CardContent className="pt-6 space-y-5">
+            <h3 className="text-base font-semibold">Apagar Produto</h3>
+            <div className="space-y-1.5">
+              <label className="text-xs uppercase tracking-wider text-muted-foreground">Produto</label>
+              <Combobox
+                options={productOptions}
+                value={deleteProductId}
+                onChange={setDeleteProductId}
+                placeholder="Selecionar produto..."
+                aria-label="Selecionar produto para apagar"
+              />
+            </div>
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <DialogTrigger asChild>
+                <Button disabled={isPending || !deleteProductId} variant="destructive">
+                  Apagar Produto
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Confirmar Exclusão</DialogTitle>
+                  <DialogDescription>
+                    Essa ação é irreversível. O produto <strong>&quot;{products.find((p) => String(p.id) === deleteProductId)?.name}&quot;</strong> e todos os eventos associados a ele serão apagados permanentemente.
+                  </DialogDescription>
+                </DialogHeader>
+                {userEmail && (
+                  <p className="text-xs text-muted-foreground">
+                    Ação executada por <strong>{userEmail}</strong>
+                  </p>
+                )}
+                <Separator />
+                <DialogFooter>
+                  <Button variant="destructive" type="button" onClick={handleDelete} disabled={isPending}>
+                    {isPending ? "Apagando..." : "Apagar definitivamente"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </TabsContent>

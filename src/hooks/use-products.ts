@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { CACHE_TTL, cacheGet, cacheSet } from "@/service/api-cache";
+import { CACHE_TTL, cacheGet, cacheGetVersion, cacheSet, cacheSubscribe } from "@/service/api-cache";
 import { cachedGet } from "@/service/api-client";
 import type { ProductsPageData } from "@/lib/types";
 
@@ -11,6 +11,7 @@ export interface UseProductsParams {
   pageSize?: number;
   categoryId?: number;
   query?: string;
+  requestNonce?: string;
 }
 
 function buildCacheKey(params: UseProductsParams) {
@@ -19,11 +20,13 @@ function buildCacheKey(params: UseProductsParams) {
     pageSize: params.pageSize ?? 10,
     ...(params.categoryId ? { categoryId: params.categoryId } : {}),
     ...(params.query ? { query: params.query } : {}),
+    ...(params.requestNonce ? { requestNonce: params.requestNonce } : {}),
   }).sort(([a], [b]) => a.localeCompare(b));
   return `/api/products?${sorted.map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
 
 export function useProducts(params: UseProductsParams, initialData?: ProductsPageData) {
+  const cacheVersion = useSyncExternalStore(cacheSubscribe, cacheGetVersion, cacheGetVersion);
   const key = buildCacheKey(params);
   const initialKeyRef = useRef<string | null>(initialData ? key : null);
   const initialCachedData = cacheGet<ProductsPageData>(key);
@@ -53,6 +56,7 @@ export function useProducts(params: UseProductsParams, initialData?: ProductsPag
             pageSize: params.pageSize ?? 10,
             categoryId: params.categoryId,
             query: params.query,
+            _r: params.requestNonce,
           },
           CACHE_TTL.products,
         );
@@ -66,7 +70,7 @@ export function useProducts(params: UseProductsParams, initialData?: ProductsPag
     void load();
 
     return () => { cancelled = true; };
-  }, [key, params.page, params.pageSize, params.categoryId, params.query]);
+  }, [key, params.page, params.pageSize, params.categoryId, params.query, params.requestNonce, cacheVersion]);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -79,6 +83,7 @@ export function useProducts(params: UseProductsParams, initialData?: ProductsPag
           pageSize: params.pageSize ?? 10,
           categoryId: params.categoryId,
           query: params.query,
+          _r: params.requestNonce,
         },
         CACHE_TTL.products,
       );
@@ -88,7 +93,7 @@ export function useProducts(params: UseProductsParams, initialData?: ProductsPag
     } finally {
       setIsLoading(false);
     }
-  }, [params.page, params.pageSize, params.categoryId, params.query]);
+  }, [params.page, params.pageSize, params.categoryId, params.query, params.requestNonce]);
 
   return { data, isLoading, error, refresh };
 }
