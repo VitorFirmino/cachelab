@@ -3,7 +3,7 @@ import { getCategories, getProductsPage } from "@/service/data";
 import { ProductsClient } from "./products-client";
 
 interface ProductsContentProps {
-  searchParams: Promise<{ page?: string; category?: string; query?: string; q?: string }>;
+  searchParams: Promise<{ page?: string; category?: string; query?: string; q?: string; checkout?: string }>;
 }
 
 export async function ProductsContent({ searchParams }: ProductsContentProps) {
@@ -21,6 +21,7 @@ export async function ProductsContent({ searchParams }: ProductsContentProps) {
     : NaN;
   const categoryId = Number.isFinite(category) ? category : undefined;
   const query = resolvedParams?.query?.trim() || resolvedParams?.q?.trim() || "";
+  const checkoutNonce = resolvedParams?.checkout?.trim();
   const pageSize = 10;
 
   const [productsResult, categories] = await Promise.all([
@@ -45,6 +46,7 @@ export async function ProductsContent({ searchParams }: ProductsContentProps) {
       pageSize={pageSize}
       categoryId={categoryId}
       query={query}
+      requestNonce={checkoutNonce}
     />
   );
 }

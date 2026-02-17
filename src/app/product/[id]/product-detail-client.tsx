@@ -1,10 +1,15 @@
 "use client";
 
-import { PrefetchLink } from "@/components/prefetch-link";
+import { useState } from "react";
+import { Minus, Plus, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
 
+import { PrefetchLink } from "@/components/prefetch-link";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCategoryIcon } from "@/lib/constants";
 import { useProduct } from "@/hooks/use-product";
+import { useCartStore } from "@/store/cart-store";
 import type { ProductDetailData } from "@/lib/types";
 
 interface ProductDetailClientProps {
@@ -14,17 +19,47 @@ interface ProductDetailClientProps {
 
 export function ProductDetailClient({ productId, initialData }: ProductDetailClientProps) {
   const { data } = useProduct(productId, initialData);
+  const addItem = useCartStore((store) => store.addItem);
+  const cartItems = useCartStore((store) => store.items);
 
   const product = data?.product ?? initialData.product;
   const events = data?.events ?? initialData.events;
 
   const icon = getCategoryIcon(product.category?.name);
-  const stockPct = Math.min(100, Math.max(8, (product.stock / 60) * 100));
-  const stockColor = product.stock > 20
-    ? "bg-success"
-    : product.stock > 5
-      ? "bg-warning"
-      : "bg-destructive";
+  const isOutOfStock = product.stock === 0;
+  const stockPct = isOutOfStock ? 0 : Math.min(100, Math.max(8, (product.stock / 60) * 100));
+  const stockColor = isOutOfStock
+    ? "bg-destructive"
+    : product.stock > 20
+      ? "bg-success"
+      : product.stock > 5
+        ? "bg-warning"
+        : "bg-destructive";
+
+  const cartItem = cartItems.find((cartItemEntry) => cartItemEntry.productId === product.id);
+  const inCart = cartItem?.quantity ?? 0;
+  const maxQty = Math.max(0, product.stock - inCart);
+  const [qty, setQty] = useState(1);
+  const maxSelectableQty = Math.max(1, maxQty);
+  const clampedQty = Math.min(qty, maxSelectableQty);
+
+  const isAtLimit = maxQty <= 0;
+
+  function handleAddToCart() {
+    if (isAtLimit) return;
+    const added = addItem({
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: clampedQty,
+      maxStock: product.stock,
+      categoryName: product.category?.name ?? null,
+    });
+    if (added) {
+      toast.success(`${clampedQty}x "${product.name}" adicionado ao carrinho`);
+      setQty(1);
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -36,41 +71,104 @@ export function ProductDetailClient({ productId, initialData }: ProductDetailCli
 
       <div className="grid gap-6 lg:grid-cols-5 animate-in delay-1">
         <div className="lg:col-span-2">
-          <div className="product-img-placeholder h-64 rounded-2xl border border-border flex items-center justify-center">
+          <div className="relative product-img-placeholder h-48 sm:h-64 rounded-2xl border border-border flex items-center justify-center">
             <span className="text-7xl">{icon}</span>
+            {isOutOfStock && (
+              <span className="absolute top-3 right-3 rounded-full bg-destructive px-3 py-1 text-xs font-bold text-white">
+                Esgotado
+              </span>
+            )}
           </div>
         </div>
 
         <div className="lg:col-span-3 space-y-5">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                 {product.category?.name ?? "Sem categoria"}
               </span>
+              {isOutOfStock && (
+                <span className="inline-flex items-center rounded-full bg-destructive/20 border border-destructive/30 px-2.5 py-0.5 text-xs font-bold text-destructive">
+                  Esgotado
+                </span>
+              )}
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight">{product.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{product.name}</h1>
           </div>
 
           <div className="rounded-2xl bg-linear-to-r from-[rgba(34,211,238,0.1)] to-[rgba(79,125,255,0.06)] border border-[rgba(34,211,238,0.15)] p-5">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Preço atual</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Preço atual</div>
             <div className="text-4xl font-extrabold text-accent-cyan neon-text-cyan">
               R$ {product.price.toFixed(2)}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="rounded-xl border border-border bg-card p-4 backdrop-blur-xl">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Estoque</div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Estoque</div>
               <div className="text-2xl font-bold mb-2">{product.stock} <span className="text-sm font-normal text-muted-foreground">unidades</span></div>
               <div className="stock-bar">
                 <div className={`stock-bar-fill ${stockColor}`} style={{ width: `${stockPct}%` }} />
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-4 backdrop-blur-xl">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Atualizado em</div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Atualizado em</div>
               <div className="text-sm font-mono text-foreground">{new Date(product.updatedAt).toISOString().split("T")[0]}</div>
               <div className="text-xs font-mono text-muted-foreground mt-1">{new Date(product.updatedAt).toISOString().split("T")[1]?.slice(0, 8) ?? ""}</div>
             </div>
+          </div>
+
+          {/* Add to Cart */}
+          <div className="rounded-xl border border-border bg-card p-4 backdrop-blur-xl space-y-3">
+            {isOutOfStock ? (
+              <Button disabled className="w-full">
+                Esgotado
+              </Button>
+            ) : isAtLimit ? (
+              <>
+                <Button disabled className="w-full">
+                  Limite de compra atingido
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Você já adicionou todo o estoque disponível ({inCart}/{product.stock}).
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setQty((currentQty) => Math.max(1, Math.min(currentQty - 1, maxSelectableQty)))}
+                      disabled={clampedQty <= 1}
+                      className="h-10 w-10 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-[rgba(79,125,255,0.3)] transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                      aria-label="Diminuir quantidade"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <span className="w-10 text-center font-mono font-semibold">{clampedQty}</span>
+                    <button
+                      type="button"
+                      onClick={() => setQty((currentQty) => Math.min(maxSelectableQty, currentQty + 1))}
+                      disabled={clampedQty >= maxQty}
+                      className="h-10 w-10 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-[rgba(79,125,255,0.3)] transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                      aria-label="Aumentar quantidade"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <Button onClick={handleAddToCart} className="flex-1 gap-2">
+                    <ShoppingCart className="h-4 w-4" />
+                    Adicionar ao Carrinho
+                  </Button>
+                </div>
+                {inCart > 0 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    {inCart} un. no carrinho — restam {maxQty} disponíveis
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -89,15 +187,15 @@ export function ProductDetailClient({ productId, initialData }: ProductDetailCli
             </div>
           ) : (
             <div className="relative">
-              <div className="absolute left-[7px] top-4 bottom-4 w-px bg-linear-to-b from-accent-purple via-primary to-transparent opacity-25" />
+              <div className="absolute left-2 top-4 bottom-4 w-px bg-linear-to-b from-accent-purple via-primary to-transparent opacity-25" />
 
               {events.map((event, i) => (
                 <div key={event.id} className={`relative flex gap-4 py-3 animate-in delay-${Math.min(i + 1, 5)}`}>
-                  <div className="relative z-10 mt-1.5 h-[14px] w-[14px] shrink-0 rounded-full border-2 border-accent-purple bg-background shadow-[0_0_8px_var(--accent-purple)]" />
+                  <div className="relative z-10 mt-1.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-accent-purple bg-background shadow-[0_0_8px_var(--accent-purple)]" />
                   <div className="event-card flex-1 rounded-xl border border-[rgba(255,255,255,0.04)] bg-[rgba(17,27,46,0.3)] p-4">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold text-sm text-accent-cyan">{event.type}</span>
-                      <span className="text-[10px] text-muted-foreground font-mono ml-auto">
+                      <span className="text-xs text-muted-foreground font-mono ml-auto">
                         {new Date(event.createdAt).toISOString().split("T")[1]?.slice(0, 8) ?? ""}
                       </span>
                     </div>

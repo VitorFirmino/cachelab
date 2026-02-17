@@ -35,7 +35,7 @@ function ProductsLoading() {
 }
 
 interface ProductsPageProps {
-  searchParams?: Promise<{ page?: string; category?: string; query?: string; q?: string }>;
+  searchParams?: Promise<{ page?: string; category?: string; query?: string; q?: string; checkout?: string }>;
 }
 
 export default function ProductsPage({ searchParams }: ProductsPageProps) {
