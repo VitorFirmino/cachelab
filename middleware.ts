@@ -41,11 +41,18 @@ export async function middleware(request: NextRequest) {
       },
     );
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (authError || !user) {
+      if (authError?.code === "refresh_token_not_found") {
+        request.cookies.getAll().forEach(({ name }) => {
+          if (name.startsWith("sb-")) request.cookies.delete(name);
+        });
+        supabaseResponse = NextResponse.next({ request });
+        request.cookies.getAll().forEach(({ name }) => {
+          if (name.startsWith("sb-")) supabaseResponse.cookies.delete(name);
+        });
+      }
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", request.nextUrl.pathname);
       return NextResponse.redirect(loginUrl);
