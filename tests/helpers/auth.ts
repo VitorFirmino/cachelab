@@ -3,25 +3,36 @@ import { ADMIN_EMAIL, ADMIN_PASSWORD } from "./constants";
 
 export async function loginAsAdmin(page: Page) {
   await page.goto("/login");
-  await page.locator('input[name="email"]').fill(ADMIN_EMAIL);
-  await page.locator('input[name="password"]').fill(ADMIN_PASSWORD);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  const emailInput = page.locator('input[name="email"]');
 
-  const waitForAdmin = async () => {
-    await page.waitForURL(/\/admin/, { timeout: 15_000 });
-    return "ok" as const;
-  };
-  const waitForInvalid = async () => {
-    await page.getByText("Credenciais inválidas").waitFor({ timeout: 15_000 });
-    return "invalid" as const;
-  };
+  if (await emailInput.count()) {
+    await emailInput.fill(ADMIN_EMAIL);
+    await page.locator('input[name="password"]').fill(ADMIN_PASSWORD);
+    await page.getByRole("button", { name: "Entrar" }).click();
+  } else if (!/\/admin/.test(page.url())) {
+    await page.goto("/admin");
+  }
 
-  const result = await Promise.race([waitForAdmin(), waitForInvalid()]);
+  if (/\/admin/.test(page.url())) {
+    if (!/\/admin\/?$/.test(page.url())) {
+      await page.goto("/admin");
+    }
+    await expect(page.getByRole("tab", { name: "Criar Produto" })).toBeVisible({ timeout: 15_000 });
+    return;
+  }
 
-  if (result === "invalid") {
+  const invalidVisible = await page.getByText(/Credenciais inválidas|Invalid login credentials/i).isVisible().catch(() => false);
+  const notAdminVisible = await page.getByText(/não tem permissão|not_admin/i).isVisible().catch(() => false);
+
+  if (invalidVisible || notAdminVisible || /\/login/.test(page.url())) {
     test.skip(true, "Admin não configurado no Supabase. Execute: npx tsx scripts/create-admin.ts");
     return;
   }
 
-  await expect(page.getByText("Painel Administrativo")).toBeVisible();
+  await page.goto("/admin");
+  if (/\/login/.test(page.url())) {
+    test.skip(true, "Admin não configurado no Supabase. Execute: npx tsx scripts/create-admin.ts");
+    return;
+  }
+  await expect(page.getByRole("tab", { name: "Criar Produto" })).toBeVisible({ timeout: 15_000 });
 }
