@@ -205,7 +205,7 @@ $ supabase functions deploy pulse
 
 ## 🧪 Testes E2E
 
-Os testes Playwright rodam contra o build de produção (porta 3001):
+Os testes E2E (Playwright) rodam contra o build de produção (porta 3001):
 
 ```bash
 # Rodar todos os testes
@@ -213,6 +213,12 @@ $ pnpm test
 
 # Rodar com UI interativa
 $ pnpm test:ui
+
+# Rodar testes unitários (Vitest)
+$ pnpm test:unit
+
+# Rodar cobertura unitária
+$ pnpm test:coverage
 ```
 
 Para testes do admin, crie o usuário de teste:
@@ -221,7 +227,7 @@ Para testes do admin, crie o usuário de teste:
 $ npx tsx scripts/create-admin.ts
 ```
 
-Os testes cobrem: páginas públicas, navegação, filtros, carrinho, checkout, consistência de estoque, CRUD admin, invalidação de cache, headers HTTP, auth e API routes.
+Os testes cobrem: páginas públicas, navegação, filtros, carrinho, checkout, consistência de estoque, CRUD admin, invalidação de cache, headers HTTP, auth e API routes, além de testes unitários para módulos críticos (cache client-side, env Supabase, URL base, headers de cache e cart store).
 
 ## 🔧 Scripts
 
@@ -233,6 +239,9 @@ Os testes cobrem: páginas públicas, navegação, filtros, carrinho, checkout, 
 | `pnpm seed` | Popular banco com dados iniciais |
 | `pnpm test` | Testes E2E (Playwright) |
 | `pnpm test:ui` | Testes E2E com interface gráfica |
+| `pnpm test:unit` | Testes unitários (Vitest) |
+| `pnpm test:unit:watch` | Unit tests em modo watch |
+| `pnpm test:coverage` | Cobertura de código unitária |
 | `pnpm lint` | Lint com ESLint |
 
 > **Build sem banco:** para ambientes onde o DB não está disponível (CI, previews), use `CACHELAB_DISABLE_DB=1 pnpm build`.
@@ -248,6 +257,7 @@ Os testes cobrem: páginas públicas, navegação, filtros, carrinho, checkout, 
 - [Supabase](https://supabase.com/) — Auth, Postgres e Edge Functions
 - [Zustand](https://zustand.docs.pmnd.rs/) — State management (carrinho)
 - [Playwright](https://playwright.dev/) — Testes E2E
+- [Vitest](https://vitest.dev/) — Testes unitários + cobertura
 
 ## 🔗 Referências
 
