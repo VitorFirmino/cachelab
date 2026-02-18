@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { createEvent, createProduct, deleteProduct, updateProduct } from "@/app/admin/actions";
+import { cacheClear } from "@/service/api-cache";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
@@ -26,6 +27,7 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
   const [updateForm, setUpdateForm] = useState({ id: "", price: "", stock: "" });
   const [eventForm, setEventForm] = useState({ type: "restock", message: "", productId: "" });
   const [deleteProductId, setDeleteProductId] = useState("");
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleCreate = () => {
@@ -38,6 +40,7 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
     startTransition(async () => {
       const result = await createProduct(formData);
       if (result.ok) {
+        cacheClear();
         toast.success(result.message);
         setCreateForm({ name: "", price: "", stock: "", categoryId: "" });
       } else {
@@ -55,7 +58,9 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
     startTransition(async () => {
       const result = await updateProduct(formData);
       if (result.ok) {
+        cacheClear();
         toast.success(result.message);
+        setUpdateDialogOpen(false);
       } else {
         toast.error(result.message);
       }
@@ -71,6 +76,7 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
     startTransition(async () => {
       const result = await createEvent(formData);
       if (result.ok) {
+        cacheClear();
         toast.success(result.message);
         setEventForm({ type: "restock", message: "", productId: "" });
       } else {
@@ -85,6 +91,7 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
       const result = await deleteProduct(id);
       setDeleteDialogOpen(false);
       if (result.ok) {
+        cacheClear();
         toast.success(result.message);
         setDeleteProductId("");
       } else {
@@ -100,7 +107,7 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
 
   const productOptions: ComboboxOption[] = [
     { value: "", label: "Selecionar produto..." },
-    ...products.map((p) => ({ value: String(p.id), label: p.name })),
+    ...products.map((p) => ({ value: String(p.id), label: `${p.name} (#${p.id})` })),
   ];
 
   const eventTypeOptions: ComboboxOption[] = [
@@ -111,7 +118,7 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
 
   const eventProductOptions: ComboboxOption[] = [
     { value: "", label: "Nenhum" },
-    ...products.map((p) => ({ value: String(p.id), label: p.name })),
+    ...products.map((p) => ({ value: String(p.id), label: `${p.name} (#${p.id})` })),
   ];
 
   return (
@@ -213,7 +220,7 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
                 />
               </div>
             </div>
-            <Dialog>
+            <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
               <DialogTrigger asChild>
                 <Button disabled={isPending || !updateForm.id} className="cta-btn">
                   Revisar Alteração

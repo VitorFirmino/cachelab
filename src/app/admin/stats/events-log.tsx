@@ -1,3 +1,4 @@
+import { LocalTime } from "@/components/local-time";
 import { PrefetchLink } from "@/components/prefetch-link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -74,7 +75,7 @@ export async function EventsLog() {
               {rows.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell className="text-xs font-mono text-muted-foreground">
-                    {new Date(e.createdAtISO).toLocaleString("pt-BR")}
+                    <LocalTime date={e.createdAtISO} />
                   </TableCell>
                   <TableCell className="text-xs font-mono">{e.type}</TableCell>
                   <TableCell className="text-sm">{e.message}</TableCell>

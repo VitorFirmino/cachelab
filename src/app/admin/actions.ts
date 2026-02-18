@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh, revalidatePath, revalidateTag, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag, updateTag } from "next/cache";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
@@ -27,8 +27,8 @@ export async function createProduct(formData: FormData) {
       },
     });
 
-    revalidatePath("/");
-    revalidatePath("/products");
+    revalidatePath("/", "page");
+    revalidatePath("/products", "page");
     updateTag("featured");
     updateTag("products");
     updateTag(`product:${product.id}`);
@@ -59,8 +59,9 @@ export async function updateProduct(formData: FormData) {
       data: { price, stock },
     });
 
-    revalidatePath("/");
-    revalidatePath("/products");
+    revalidatePath("/", "page");
+    revalidatePath("/products", "page");
+    revalidatePath(`/product/${product.id}`, "page");
     updateTag("featured");
     updateTag("products");
     updateTag(`product:${product.id}`);
@@ -91,14 +92,14 @@ export async function createEvent(formData: FormData) {
       },
     });
 
-    revalidatePath("/");
-    revalidatePath("/products");
+    revalidatePath("/", "page");
+    revalidatePath("/products", "page");
     updateTag("pulse");
     updateTag("products");
     updateTag("events");
     if (event.productId) {
       updateTag(`product:${event.productId}`);
-      revalidatePath(`/product/${event.productId}`);
+      revalidatePath(`/product/${event.productId}`, "page");
     }
 
     return { ok: true, message: "Evento criado." };
@@ -117,13 +118,13 @@ export async function deleteProduct(productId: number) {
     await prisma.event.deleteMany({ where: { productId } });
     const product = await prisma.product.delete({ where: { id: productId } });
 
-    revalidatePath("/");
-    revalidatePath("/products");
+    revalidatePath("/", "page");
+    revalidatePath("/products", "page");
+    revalidatePath(`/product/${productId}`, "page");
     updateTag("featured");
     updateTag("products");
     updateTag("events");
     updateTag(`product:${productId}`);
-    refresh();
 
     return { ok: true, message: `Produto "${product.name}" apagado.` };
   } catch (error) {
@@ -134,8 +135,8 @@ export async function deleteProduct(productId: number) {
 
 export async function purgeAllCache() {
   try {
-    revalidatePath("/");
-    revalidatePath("/products");
+    revalidatePath("/", "layout");
+    revalidatePath("/products", "layout");
     revalidateTag("featured", "max");
     revalidateTag("products", "max");
     revalidateTag("events", "max");
@@ -211,12 +212,11 @@ export async function updateCacheTTL(
     });
 
     revalidateTag(profileId, "max");
-    revalidatePath("/");
-    revalidatePath("/products");
+    revalidatePath("/", "layout");
+    revalidatePath("/products", "layout");
 
     return { ok: true, message: `TTL "${profileId}" atualizado.` };
   } catch (error) {
-    // Most common local/prod misconfig: schema not applied yet.
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2021"
@@ -240,8 +240,8 @@ export async function purgeCacheByTags(tags: string[]) {
     for (const tag of tags) {
       revalidateTag(tag, "max");
     }
-    revalidatePath("/");
-    revalidatePath("/products");
+    revalidatePath("/", "layout");
+    revalidatePath("/products", "layout");
 
     return { ok: true, message: `Cache limpo para: ${tags.join(", ")}` };
   } catch (error) {

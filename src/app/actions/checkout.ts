@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import type { OrderSummary } from "@/lib/types";
@@ -42,65 +43,82 @@ export async function processCheckout(items: CheckoutItem[]) {
 
     const orderItems: OrderSummary["items"] = [];
 
-    await prisma.$transaction(async (tx) => {
-      for (const item of items) {
-        const product = await tx.product.findUniqueOrThrow({
-          where: { id: item.productId },
-          select: { id: true, name: true, price: true },
-        });
+    const runTransaction = () =>
+      prisma.$transaction(
+        async (tx) => {
+          for (const item of items) {
+            const product = await tx.product.findUniqueOrThrow({
+              where: { id: item.productId },
+              select: { id: true, name: true, price: true },
+            });
 
-        const updated = await tx.product.updateMany({
-          where: { id: item.productId, stock: { gte: item.quantity } },
-          data: { stock: { decrement: item.quantity } },
-        });
+            const updated = await tx.product.updateMany({
+              where: { id: item.productId, stock: { gte: item.quantity } },
+              data: { stock: { decrement: item.quantity } },
+            });
 
-        if (updated.count === 0) {
-          const latest = await tx.product.findUnique({
-            where: { id: item.productId },
-            select: { stock: true, name: true },
-          });
+            if (updated.count === 0) {
+              const latest = await tx.product.findUnique({
+                where: { id: item.productId },
+                select: { stock: true, name: true },
+              });
 
-          if (!latest) {
-            throw new Error(`Produto #${item.productId} não encontrado.`);
+              if (!latest) {
+                throw new Error(`Produto #${item.productId} não encontrado.`);
+              }
+
+              throw createInsufficientStockError(
+                item.productId,
+                latest.name,
+                latest.stock,
+                item.quantity,
+              );
+            }
+
+            await tx.event.create({
+              data: {
+                type: "sale",
+                message: `Venda de ${item.quantity}x "${product.name}" — R$ ${(product.price * item.quantity).toFixed(2)}`,
+                productId: item.productId,
+              },
+            });
+
+            orderItems.push({
+              name: product.name,
+              quantity: item.quantity,
+              total: product.price * item.quantity,
+            });
           }
+        },
+        {
+          maxWait: 15_000,
+          timeout: 20_000,
+          isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        },
+      );
 
-          throw createInsufficientStockError(
-            item.productId,
-            latest.name,
-            latest.stock,
-            item.quantity,
-          );
-        }
-
-        await tx.event.create({
-          data: {
-            type: "sale",
-            message: `Venda de ${item.quantity}x "${product.name}" — R$ ${(product.price * item.quantity).toFixed(2)}`,
-            productId: item.productId,
-          },
-        });
-
-        orderItems.push({
-          name: product.name,
-          quantity: item.quantity,
-          total: product.price * item.quantity,
-        });
-      }
-    });
+    try {
+      await runTransaction();
+    } catch (error) {
+      const isTimeout =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2028";
+      if (!isTimeout) throw error;
+      orderItems.length = 0;
+      await new Promise((r) => setTimeout(r, 250));
+      await runTransaction();
+    }
 
     const orderSummary: OrderSummary = {
       items: orderItems,
       total: orderItems.reduce((sum, i) => sum + i.total, 0),
     };
 
-    revalidatePath("/");
-    revalidatePath("/products");
-    updateTag("featured");
-    updateTag("products");
-    updateTag("events");
-    for (const item of items) {
-      updateTag(`product:${item.productId}`);
-      revalidatePath(`/product/${item.productId}`);
+    for (const tag of ["featured", "products", "events"]) updateTag(tag);
+    for (const path of ["/", "/products"]) revalidatePath(path, "layout");
+    for (const { productId } of items) {
+      updateTag(`product:${productId}`);
+      revalidatePath(`/product/${productId}`, "layout");
     }
 
     return {
