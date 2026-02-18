@@ -11,11 +11,12 @@ export async function GET(request: Request) {
 
   if (id) {
     const productId = Number(id);
+    const cacheBust = url.searchParams.get("_r") || undefined;
     if (Number.isNaN(productId)) {
       return NextResponse.json({ error: "Invalid id." }, { status: 400 });
     }
-    const product = await getProductById(productId);
-    const events = includeEvents === "1" ? await getProductEvents(productId, 5) : [];
+    const product = await getProductById(productId, cacheBust);
+    const events = includeEvents === "1" ? await getProductEvents(productId, 5, cacheBust) : [];
 
     return NextResponse.json(
       {
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
   }
 
   const page = Number(url.searchParams.get("page") || 1);
-  const pageSize = Number(url.searchParams.get("pageSize") || 10);
+  const pageSize = Number(url.searchParams.get("pageSize") || 6);
   const categoryId = url.searchParams.get("categoryId");
   const query = url.searchParams.get("query")?.trim() || url.searchParams.get("q")?.trim() || undefined;
   const cacheBust = url.searchParams.get("_r") || undefined;
