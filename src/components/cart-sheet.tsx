@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -36,9 +36,68 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderSummary | null>(null);
   const checkoutLockRef = useRef(false);
+  const validationLockRef = useRef(false);
 
   const count = totalItems(items);
   const total = subtotal(items);
+
+  useEffect(() => {
+    if (!open || items.length === 0 || validationLockRef.current) return;
+
+    let cancelled = false;
+    validationLockRef.current = true;
+
+    const validateCart = async () => {
+      const nonce = `${Date.now()}`;
+      const checks = await Promise.allSettled(
+        items.map(async (item) => {
+          const response = await fetch(`/api/products?id=${item.productId}&_r=${nonce}`, {
+            cache: "no-store",
+          });
+          if (!response.ok) {
+            return { item, product: null as null | { stock: number } };
+          }
+          const payload = await response.json() as { data?: { product?: { stock: number } | null } };
+          return { item, product: payload.data?.product ?? null };
+        }),
+      );
+
+      if (cancelled) return;
+
+      let removedCount = 0;
+      let adjustedCount = 0;
+
+      for (const check of checks) {
+        if (check.status !== "fulfilled") continue;
+        const { item, product } = check.value;
+        if (!product) {
+          removeItem(item.productId);
+          removedCount++;
+          continue;
+        }
+        if (product.stock < item.quantity) adjustedCount++;
+        syncItemStock(item.productId, product.stock);
+      }
+
+      if (removedCount > 0 || adjustedCount > 0) {
+        cacheClear();
+      }
+      if (removedCount > 0) {
+        toast.error(`${removedCount} item(ns) removido(s): produto não existe mais.`);
+      }
+      if (adjustedCount > 0) {
+        toast.warning(`${adjustedCount} item(ns) ajustado(s) por mudança de estoque.`);
+      }
+    };
+
+    void validateCart().finally(() => {
+      validationLockRef.current = false;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, items, removeItem, syncItemStock]);
 
   async function handleCheckout() {
     if (checkoutLockRef.current) return;
@@ -58,6 +117,10 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
       } else {
         if (result.code === "INSUFFICIENT_STOCK") {
           syncItemStock(result.productId, result.available);
+        }
+        if (result.code === "PRODUCT_NOT_FOUND" && typeof result.productId === "number") {
+          removeItem(result.productId);
+          cacheClear();
         }
         toast.error(result.message);
       }

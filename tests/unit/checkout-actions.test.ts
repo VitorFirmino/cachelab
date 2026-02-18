@@ -15,9 +15,8 @@ const mockTransaction = vi.fn();
 
 const mockTx = {
   product: {
-    findUniqueOrThrow: vi.fn(),
-    updateMany: vi.fn(),
     findUnique: vi.fn(),
+    updateMany: vi.fn(),
   },
   event: {
     create: vi.fn(),
@@ -77,7 +76,7 @@ describe("processCheckout", () => {
 
   it("processes checkout successfully and updates cache tags", async () => {
     const { processCheckout } = await loadCheckoutActions();
-    mockTx.product.findUniqueOrThrow.mockResolvedValueOnce({
+    mockTx.product.findUnique.mockResolvedValueOnce({
       id: 1,
       name: "Mouse",
       price: 100,
@@ -110,16 +109,17 @@ describe("processCheckout", () => {
 
   it("returns INSUFFICIENT_STOCK error details", async () => {
     const { processCheckout } = await loadCheckoutActions();
-    mockTx.product.findUniqueOrThrow.mockResolvedValueOnce({
+    mockTx.product.findUnique
+      .mockResolvedValueOnce({
       id: 5,
       name: "Keyboard",
       price: 200,
-    });
+      })
+      .mockResolvedValueOnce({
+        stock: 1,
+        name: "Keyboard",
+      });
     mockTx.product.updateMany.mockResolvedValueOnce({ count: 0 });
-    mockTx.product.findUnique.mockResolvedValueOnce({
-      stock: 1,
-      name: "Keyboard",
-    });
     mockTransaction.mockImplementationOnce(async (cb: (tx: typeof mockTx) => Promise<void>) => cb(mockTx));
 
     const promise = processCheckout([{ productId: 5, quantity: 3 }]);
@@ -141,7 +141,7 @@ describe("processCheckout", () => {
     const timeoutError = new PrismaClientKnownRequestError("timeout", {
       code: "P2028",
     });
-    mockTx.product.findUniqueOrThrow.mockResolvedValueOnce({
+    mockTx.product.findUnique.mockResolvedValueOnce({
       id: 2,
       name: "Headset",
       price: 50,
@@ -179,6 +179,23 @@ describe("processCheckout", () => {
     expect(result).toEqual({
       ok: false,
       message: "Falha ao processar compra. Tente novamente.",
+    });
+  });
+
+  it("returns PRODUCT_NOT_FOUND when product no longer exists", async () => {
+    const { processCheckout } = await loadCheckoutActions();
+    mockTx.product.findUnique.mockResolvedValueOnce(null);
+    mockTransaction.mockImplementationOnce(async (cb: (tx: typeof mockTx) => Promise<void>) => cb(mockTx));
+
+    const promise = processCheckout([{ productId: 999, quantity: 1 }]);
+    await vi.advanceTimersByTimeAsync(1_000);
+    const result = await promise;
+
+    expect(result).toEqual({
+      ok: false,
+      code: "PRODUCT_NOT_FOUND",
+      message: "O produto #999 não existe mais.",
+      productId: 999,
     });
   });
 });

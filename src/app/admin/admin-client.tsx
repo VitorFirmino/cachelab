@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { createEvent, createProduct, deleteProduct, updateProduct } from "@/app/admin/actions";
@@ -22,6 +23,7 @@ interface AdminClientProps {
 }
 
 export function AdminClient({ categories, products, userEmail }: AdminClientProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [createForm, setCreateForm] = useState({ name: "", price: "", stock: "", categoryId: "" });
   const [updateForm, setUpdateForm] = useState({ id: "", price: "", stock: "" });
@@ -29,6 +31,12 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
   const [deleteProductId, setDeleteProductId] = useState("");
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const emitInvalidateNonce = () => {
+    if (typeof window === "undefined") return;
+    const nonce = `${Date.now()}`;
+    window.dispatchEvent(new CustomEvent("cachelab:checkout-nonce", { detail: nonce }));
+  };
 
   const handleCreate = () => {
     const formData = new FormData();
@@ -41,6 +49,8 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
       const result = await createProduct(formData);
       if (result.ok) {
         cacheClear();
+        emitInvalidateNonce();
+        router.refresh();
         toast.success(result.message);
         setCreateForm({ name: "", price: "", stock: "", categoryId: "" });
       } else {
@@ -59,6 +69,8 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
       const result = await updateProduct(formData);
       if (result.ok) {
         cacheClear();
+        emitInvalidateNonce();
+        router.refresh();
         toast.success(result.message);
         setUpdateDialogOpen(false);
       } else {
@@ -77,6 +89,8 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
       const result = await createEvent(formData);
       if (result.ok) {
         cacheClear();
+        emitInvalidateNonce();
+        router.refresh();
         toast.success(result.message);
         setEventForm({ type: "restock", message: "", productId: "" });
       } else {
@@ -92,6 +106,8 @@ export function AdminClient({ categories, products, userEmail }: AdminClientProp
       setDeleteDialogOpen(false);
       if (result.ok) {
         cacheClear();
+        emitInvalidateNonce();
+        router.refresh();
         toast.success(result.message);
         setDeleteProductId("");
       } else {

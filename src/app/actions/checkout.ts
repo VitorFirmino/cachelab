@@ -18,6 +18,11 @@ type InsufficientStockError = Error & {
   requested: number;
 };
 
+type ProductNotFoundError = Error & {
+  code: "PRODUCT_NOT_FOUND";
+  productId: number;
+};
+
 const createInsufficientStockError = (
   productId: number,
   productName: string,
@@ -29,6 +34,12 @@ const createInsufficientStockError = (
       `Estoque insuficiente para "${productName}". Disponível: ${available}, solicitado: ${requested}.`,
     ),
     { code: "INSUFFICIENT_STOCK" as const, productId, available, requested },
+  );
+
+const createProductNotFoundError = (productId: number): ProductNotFoundError =>
+  Object.assign(
+    new Error(`O produto #${productId} não existe mais.`),
+    { code: "PRODUCT_NOT_FOUND" as const, productId },
   );
 
 export async function processCheckout(items: CheckoutItem[]) {
@@ -47,10 +58,13 @@ export async function processCheckout(items: CheckoutItem[]) {
       prisma.$transaction(
         async (tx) => {
           for (const item of items) {
-            const product = await tx.product.findUniqueOrThrow({
+            const product = await tx.product.findUnique({
               where: { id: item.productId },
               select: { id: true, name: true, price: true },
             });
+            if (!product) {
+              throw createProductNotFoundError(item.productId);
+            }
 
             const updated = await tx.product.updateMany({
               where: { id: item.productId, stock: { gte: item.quantity } },
@@ -64,7 +78,7 @@ export async function processCheckout(items: CheckoutItem[]) {
               });
 
               if (!latest) {
-                throw new Error(`Produto #${item.productId} não encontrado.`);
+                throw createProductNotFoundError(item.productId);
               }
 
               throw createInsufficientStockError(
@@ -141,6 +155,29 @@ export async function processCheckout(items: CheckoutItem[]) {
         productId: stockError.productId,
         available: stockError.available,
         requested: stockError.requested,
+      };
+    }
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "PRODUCT_NOT_FOUND"
+    ) {
+      const missingError = error as ProductNotFoundError;
+      return {
+        ok: false as const,
+        code: "PRODUCT_NOT_FOUND" as const,
+        message: missingError.message,
+        productId: missingError.productId,
+      };
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return {
+        ok: false as const,
+        code: "PRODUCT_NOT_FOUND" as const,
+        message: "Um dos produtos do carrinho não existe mais.",
       };
     }
     return {
