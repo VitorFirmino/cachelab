@@ -19,10 +19,11 @@ function getStockLevel(stock: number) {
 
 interface FeaturedGridProps {
   initialFeatured: FeaturedData;
+  requestNonce?: string;
 }
 
-export function FeaturedGrid({ initialFeatured }: FeaturedGridProps) {
-  const { data: featured } = useFeatured(initialFeatured);
+export function FeaturedGrid({ initialFeatured, requestNonce }: FeaturedGridProps) {
+  const { data: featured } = useFeatured(initialFeatured, requestNonce);
 
   const products = featured?.products ?? [];
 
@@ -52,7 +53,11 @@ export function FeaturedGrid({ initialFeatured }: FeaturedGridProps) {
         return (
           <PrefetchLink
             key={product.id}
-            href={`/product/${product.id}`}
+            href={
+              requestNonce
+                ? `/product/${product.id}?_r=${encodeURIComponent(requestNonce)}`
+                : `/product/${product.id}`
+            }
             className={`product-card block rounded-2xl border border-border bg-card backdrop-blur-xl animate-in delay-${Math.min(i + 2, 8)}`}
           >
             <div className="card-shine" />

@@ -26,14 +26,21 @@ function FeaturedSkeleton() {
   );
 }
 
-export default function HomePage() {
+interface HomePageProps {
+  searchParams?: Promise<{ checkout?: string; _r?: string }>;
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const resolvedSearchParams = await searchParams;
+  const requestNonce = resolvedSearchParams?.checkout?.trim() || resolvedSearchParams?._r?.trim();
+
   return (
     <div className="flex flex-col gap-14">
 
-      <section className="animate-in relative py-6">
+      <section className="relative py-6">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(34,211,238,0.2)] bg-[rgba(34,211,238,0.06)] px-3 py-1 text-xs font-medium text-accent-cyan mb-4">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-cyan shadow-[0_0_6px_var(--accent-cyan)] animate-pulse" />
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-cyan shadow-[0_0_6px_var(--accent-cyan)]" />
             Loja Online
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl leading-none mb-4">
@@ -53,7 +60,7 @@ export default function HomePage() {
         </div>
 
         <Suspense fallback={<FeaturedSkeleton />}>
-          <FeaturedProducts />
+          <FeaturedProducts requestNonce={requestNonce} />
         </Suspense>
       </section>
 

@@ -17,13 +17,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const isProduction = process.env.NODE_ENV === "production";
+  const isVercelRuntime = process.env.VERCEL === "1";
+  const enableVercelAnalytics = isProduction && isVercelRuntime;
+
   return (
     <html lang="pt-BR">
       <body className="antialiased">
         <AppShell>{children}</AppShell>
-        <CacheIndicator />
+        {!isProduction ? <CacheIndicator /> : null}
         <SonnerToaster />
-        <Analytics />
+        {enableVercelAnalytics ? <Analytics /> : null}
       </body>
     </html>
   );
