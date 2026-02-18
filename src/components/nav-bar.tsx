@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { Menu, ShoppingCart } from "lucide-react";
 
 import { PrefetchLink } from "@/components/prefetch-link";
 import { CacheLabMark } from "@/components/cachelab-mark";
-import { CartSheet } from "@/components/cart-sheet";
 import {
   Sheet,
   SheetContent,
@@ -15,17 +15,51 @@ import {
 } from "@/components/ui/sheet";
 import { useCartStore, totalItems } from "@/store/cart-store";
 
-const navItems = [
-  { href: "/", label: "Início" },
-  { href: "/products", label: "Produtos" },
-  { href: "/admin", label: "Admin" },
-];
+const CartSheet = dynamic(
+  () => import("@/components/cart-sheet").then((mod) => mod.CartSheet),
+  { ssr: false },
+);
 
 export function NavBar() {
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [checkoutNonce, setCheckoutNonce] = useState("");
   const items = useCartStore((store) => store.items);
   const count = totalItems(items);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncNonceFromLocation = () => {
+      const params = new URLSearchParams(window.location.search);
+      setCheckoutNonce(params.get("checkout")?.trim() || params.get("_r")?.trim() || "");
+    };
+    const onCheckoutNonce = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      setCheckoutNonce(customEvent.detail || "");
+    };
+
+    syncNonceFromLocation();
+    window.addEventListener("popstate", syncNonceFromLocation);
+    window.addEventListener("cachelab:checkout-nonce", onCheckoutNonce);
+
+    return () => {
+      window.removeEventListener("popstate", syncNonceFromLocation);
+      window.removeEventListener("cachelab:checkout-nonce", onCheckoutNonce);
+    };
+  }, []);
+
+  const withCheckout = (href: string) => {
+    if (!checkoutNonce) return href;
+    if (href !== "/" && href !== "/products") return href;
+    const params = new URLSearchParams({ checkout: checkoutNonce });
+    return `${href}?${params.toString()}`;
+  };
+
+  const navItems = [
+    { href: withCheckout("/"), label: "Início" },
+    { href: withCheckout("/products"), label: "Produtos" },
+    { href: "/admin", label: "Admin" },
+  ];
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[rgba(6,9,15,0.7)] backdrop-blur-2xl">
@@ -141,7 +175,7 @@ export function NavBar() {
         </SheetContent>
       </Sheet>
 
-      <CartSheet open={cartOpen} onOpenChange={setCartOpen} />
+      {cartOpen ? <CartSheet open={cartOpen} onOpenChange={setCartOpen} /> : null}
     </header>
   );
 }

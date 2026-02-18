@@ -74,8 +74,11 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
     setOrderResult(null);
     onOpenChange(false);
     if (shouldRedirectToCatalog) {
-      router.push("/products");
-      router.refresh();
+      const checkoutNonce = `${Date.now()}`;
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("cachelab:checkout-nonce", { detail: checkoutNonce }));
+      }
+      router.push(`/products?checkout=${checkoutNonce}`);
     }
   }
 
