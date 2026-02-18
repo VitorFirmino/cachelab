@@ -1,30 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { CACHE_TTL, cacheGet, cacheSet } from "@/service/api-cache";
+import { CACHE_TTL, cacheGet, cacheGetVersion, cacheSet, cacheSubscribe } from "@/service/api-cache";
 import { cachedGet } from "@/service/api-client";
 import type { Category } from "@/lib/types";
 
 const CACHE_KEY = "/api/categories?";
 
 export function useCategories(initialData?: Category[]) {
+  const cacheVersion = useSyncExternalStore(cacheSubscribe, cacheGetVersion, cacheGetVersion);
+  const mountVersionRef = useRef(cacheVersion);
   const initialCachedData = cacheGet<Category[]>(CACHE_KEY);
   const [fetchedData, setFetchedData] = useState<Category[] | null>(
     initialData ?? initialCachedData,
   );
-  const data = initialData ?? fetchedData;
+  const hasInvalidated = cacheVersion !== mountVersionRef.current;
+  const data = hasInvalidated ? (fetchedData ?? initialData) : (initialData ?? fetchedData);
   const [isLoading, setIsLoading] = useState(!data);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (initialData) {
+    if (initialData && cacheVersion === mountVersionRef.current) {
       cacheSet(CACHE_KEY, initialData, CACHE_TTL.categories);
     }
-  }, [initialData]);
+  }, [initialData, cacheVersion]);
 
   useEffect(() => {
-    if (initialData) return;
+    if (initialData && cacheVersion === mountVersionRef.current) return;
 
     let cancelled = false;
     const load = async () => {
@@ -42,7 +45,7 @@ export function useCategories(initialData?: Category[]) {
     void load();
 
     return () => { cancelled = true; };
-  }, [initialData]);
+  }, [initialData, cacheVersion]);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);

@@ -8,33 +8,39 @@ import type { FeaturedData } from "@/lib/types";
 
 const CACHE_KEY = "/api/featured?";
 
-export function useFeatured(initialData?: FeaturedData) {
+export function useFeatured(initialData?: FeaturedData, requestNonce?: string) {
   const cacheVersion = useSyncExternalStore(cacheSubscribe, cacheGetVersion, cacheGetVersion);
   const mountVersionRef = useRef(cacheVersion);
-  const initialCachedData = cacheGet<FeaturedData>(CACHE_KEY);
+  const key = requestNonce ? `${CACHE_KEY}_r=${requestNonce}` : CACHE_KEY;
+  const initialCachedData = cacheGet<FeaturedData>(key);
   const [fetchedData, setFetchedData] = useState<FeaturedData | null>(
-    initialData ?? initialCachedData,
+    initialCachedData ?? initialData ?? null,
   );
-  const hasInvalidated = cacheVersion !== mountVersionRef.current;
-  const data = hasInvalidated ? (fetchedData ?? initialData) : (initialData ?? fetchedData);
+  const data = fetchedData ?? initialData ?? null;
   const [isLoading, setIsLoading] = useState(!data);
   const [error, setError] = useState<Error | null>(null);
+  const canTrustInitialPayload =
+    cacheVersion === 0 && !initialCachedData;
 
   useEffect(() => {
-    if (initialData) {
-      cacheSet(CACHE_KEY, initialData, CACHE_TTL.featured);
+    if (initialData && canTrustInitialPayload) {
+      cacheSet(key, initialData, CACHE_TTL.featured);
     }
-  }, [initialData]);
+  }, [initialData, canTrustInitialPayload, key]);
 
   useEffect(() => {
-    if (initialData && cacheVersion === mountVersionRef.current) return;
+    if (initialData && canTrustInitialPayload) return;
 
     let cancelled = false;
     const load = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const result = await cachedGet<FeaturedData>("/featured", {}, CACHE_TTL.featured);
+        const result = await cachedGet<FeaturedData>(
+          "/featured",
+          requestNonce ? { _r: requestNonce } : {},
+          CACHE_TTL.featured,
+        );
         if (!cancelled) setFetchedData(result);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err : new Error(String(err)));
@@ -45,20 +51,24 @@ export function useFeatured(initialData?: FeaturedData) {
     void load();
 
     return () => { cancelled = true; };
-  }, [initialData, cacheVersion]);
+  }, [initialData, cacheVersion, canTrustInitialPayload, requestNonce]);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await cachedGet<FeaturedData>("/featured", {}, CACHE_TTL.featured);
+      const result = await cachedGet<FeaturedData>(
+        "/featured",
+        requestNonce ? { _r: requestNonce } : {},
+        CACHE_TTL.featured,
+      );
       setFetchedData(result);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [requestNonce]);
 
   return { data, isLoading: initialData ? false : isLoading, error, refresh };
 }

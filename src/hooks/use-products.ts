@@ -14,10 +14,12 @@ export interface UseProductsParams {
   requestNonce?: string;
 }
 
+const DEFAULT_PRODUCTS_PAGE_SIZE = 6;
+
 function buildCacheKey(params: UseProductsParams) {
   const sorted = Object.entries({
     page: params.page ?? 1,
-    pageSize: params.pageSize ?? 10,
+    pageSize: params.pageSize ?? DEFAULT_PRODUCTS_PAGE_SIZE,
     ...(params.categoryId ? { categoryId: params.categoryId } : {}),
     ...(params.query ? { query: params.query } : {}),
     ...(params.requestNonce ? { requestNonce: params.requestNonce } : {}),
@@ -29,21 +31,32 @@ export function useProducts(params: UseProductsParams, initialData?: ProductsPag
   const cacheVersion = useSyncExternalStore(cacheSubscribe, cacheGetVersion, cacheGetVersion);
   const key = buildCacheKey(params);
   const initialKeyRef = useRef<string | null>(initialData ? key : null);
+  const mountVersionRef = useRef(cacheVersion);
   const initialCachedData = cacheGet<ProductsPageData>(key);
-  const canUseInitialData = initialData && key === initialKeyRef.current;
+  const canUseInitialData =
+    initialData &&
+    !params.requestNonce &&
+    key === initialKeyRef.current &&
+    cacheVersion === mountVersionRef.current;
   const initialResolvedData = canUseInitialData ? initialData : initialCachedData;
 
   const [data, setData] = useState<ProductsPageData | null>(initialResolvedData ?? null);
   const [isLoading, setIsLoading] = useState(!initialResolvedData);
   const [error, setError] = useState<Error | null>(null);
+  const skipFirstLoadRef = useRef(Boolean(initialResolvedData) && !params.requestNonce);
 
   useEffect(() => {
-    if (initialData) {
+    if (initialData && cacheVersion === mountVersionRef.current) {
       cacheSet(key, initialData, CACHE_TTL.products);
     }
-  }, [initialData, key]);
+  }, [initialData, key, cacheVersion]);
 
   useEffect(() => {
+    if (skipFirstLoadRef.current) {
+      skipFirstLoadRef.current = false;
+      return;
+    }
+
     let cancelled = false;
     const load = async () => {
       setIsLoading(true);
@@ -53,7 +66,7 @@ export function useProducts(params: UseProductsParams, initialData?: ProductsPag
           "/products",
           {
             page: params.page ?? 1,
-            pageSize: params.pageSize ?? 10,
+            pageSize: params.pageSize ?? DEFAULT_PRODUCTS_PAGE_SIZE,
             categoryId: params.categoryId,
             query: params.query,
             _r: params.requestNonce,
@@ -80,7 +93,7 @@ export function useProducts(params: UseProductsParams, initialData?: ProductsPag
         "/products",
         {
           page: params.page ?? 1,
-          pageSize: params.pageSize ?? 10,
+          pageSize: params.pageSize ?? DEFAULT_PRODUCTS_PAGE_SIZE,
           categoryId: params.categoryId,
           query: params.query,
           _r: params.requestNonce,
