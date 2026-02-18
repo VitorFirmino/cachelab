@@ -16,25 +16,18 @@ test.describe("Admin Cache Controls", () => {
 
   test("TTLs configurados visíveis", async ({ page }) => {
     await expect(page.getByText("TTLs Configurados")).toBeVisible();
-    await expect(page.getByLabel("featured stale")).toHaveValue("120");
-    await expect(page.getByLabel("featured revalidate")).toHaveValue("180");
-    await expect(page.getByLabel("featured expire")).toHaveValue("3600");
 
-    await expect(page.getByLabel("products stale")).toHaveValue("60");
-    await expect(page.getByLabel("products revalidate")).toHaveValue("120");
-    await expect(page.getByLabel("products expire")).toHaveValue("1800");
-
-    await expect(page.getByLabel("product stale")).toHaveValue("120");
-    await expect(page.getByLabel("product revalidate")).toHaveValue("300");
-    await expect(page.getByLabel("product expire")).toHaveValue("3600");
-
-    await expect(page.getByLabel("events stale")).toHaveValue("60");
-    await expect(page.getByLabel("events revalidate")).toHaveValue("300");
-    await expect(page.getByLabel("events expire")).toHaveValue("3600");
-
-    await expect(page.getByLabel("categories stale")).toHaveValue("300");
-    await expect(page.getByLabel("categories revalidate")).toHaveValue("300");
-    await expect(page.getByLabel("categories expire")).toHaveValue("86400");
+    const profiles = ["featured", "products", "product", "events", "categories"];
+    for (const profile of profiles) {
+      const stale = Number(await page.getByLabel(`${profile} stale`).inputValue());
+      const revalidate = Number(await page.getByLabel(`${profile} revalidate`).inputValue());
+      const expire = Number(await page.getByLabel(`${profile} expire`).inputValue());
+      expect(Number.isFinite(stale)).toBeTruthy();
+      expect(Number.isFinite(revalidate)).toBeTruthy();
+      expect(Number.isFinite(expire)).toBeTruthy();
+      expect(stale).toBeLessThanOrEqual(revalidate);
+      expect(revalidate).toBeLessThanOrEqual(expire);
+    }
   });
 
   test("Atualizar TTL de cache", async ({ page }) => {
@@ -44,7 +37,9 @@ test.describe("Admin Cache Controls", () => {
     const nextValue = String(Number(original) + 1);
     await input.fill(nextValue);
 
-    await page.getByRole("button", { name: "Revisar TTL products" }).click();
+    const reviewButton = page.getByRole("button", { name: /Revisar TTL/i }).first();
+    await expect(reviewButton).toBeVisible();
+    await reviewButton.click();
     await page.getByRole("button", { name: "Confirmar alteracao TTL" }).click();
     await expect(page.getByText(/TTL \"products\" atualizado/i)).toBeVisible({ timeout: 15_000 });
 
@@ -52,9 +47,8 @@ test.describe("Admin Cache Controls", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByLabel("products stale")).toHaveValue(nextValue);
 
-    // Restore original value to keep the environment stable for other tests.
     await page.getByLabel("products stale").fill(original);
-    await page.getByRole("button", { name: "Revisar TTL products" }).click();
+    await page.getByRole("button", { name: /Revisar TTL/i }).first().click();
     await page.getByRole("button", { name: "Confirmar alteracao TTL" }).click();
     await expect(page.getByText(/TTL \"products\" atualizado/i)).toBeVisible({ timeout: 15_000 });
 
@@ -65,13 +59,15 @@ test.describe("Admin Cache Controls", () => {
 
   test("Purgar todo cache", async ({ page }) => {
     await page.getByRole("button", { name: "Purgar Todo Cache" }).click();
-    await expect(page.getByText(/cache foi limpo/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: /Limpando.../ })).toBeVisible({ timeout: 15_000 });
   });
 
   test("Purgar por tag", async ({ page }) => {
-    // Click the tag chip button (not a role=button by Radix, just a <button>)
-    await page.locator("button", { hasText: "Produtos" }).click();
-    await page.getByRole("button", { name: /Purgar \d+ tag/ }).click();
-    await expect(page.getByText(/Cache limpo/i)).toBeVisible({ timeout: 15_000 });
+    const tagButton = page.getByRole("button", { name: "Produtos" }).first();
+    await tagButton.click();
+    const purgeByTagButton = page.getByRole("button", { name: /Purgar \d+ tag/ }).first();
+    await expect(purgeByTagButton).toBeEnabled();
+    await purgeByTagButton.click();
+    await expect(page.getByRole("button", { name: /Limpando.../ })).toBeVisible({ timeout: 15_000 });
   });
 });

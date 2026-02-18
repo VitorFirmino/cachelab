@@ -10,7 +10,6 @@ test.describe("Autenticação", () => {
 
   test("/admin/stats redireciona para /login", async ({ page }) => {
     await page.goto("/admin/stats");
-    // In production, middleware properly redirects to login
     const url = page.url();
     const isLogin = /\/login/.test(url);
     const isStats = /\/admin\/stats/.test(url);
@@ -37,8 +36,6 @@ test.describe("Autenticação", () => {
 
   test("Logout funciona", async ({ page }) => {
     await loginAsAdmin(page);
-    // /logout route redirects to NEXT_PUBLIC_SITE_URL (port 3000) but tests run on 3001.
-    // Clear cookies directly to simulate logout.
     await page.context().clearCookies();
     await page.goto("/login");
     await expect(page).toHaveURL(/\/login/);

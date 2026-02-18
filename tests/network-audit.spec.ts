@@ -13,13 +13,11 @@ test.describe("Network RSC audit", () => {
       }
     });
 
-    // 1. Load home
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     const initialCount = rscRequests.length;
     console.log(`\n--- Initial load: ${initialCount} RSC request(s) ---`);
 
-    // 2. Navigate to /products
     await page.evaluate(() => {
       const link = document.querySelector('header a[href="/products"]') as HTMLAnchorElement;
       link?.click();
@@ -28,7 +26,6 @@ test.describe("Network RSC audit", () => {
     await page.waitForLoadState("networkidle");
     console.log(`--- After /products: ${rscRequests.length - initialCount} new RSC request(s) ---`);
 
-    // 3. Click Início link 4 times
     const beforeClicks = rscRequests.length;
 
     for (let clickNumber = 1; clickNumber <= 4; clickNumber++) {
@@ -44,7 +41,6 @@ test.describe("Network RSC audit", () => {
       console.log(`--- Click #${clickNumber}: +${rscRequests.length - beforeClicks} total, ${homeOnly.length} for / ---`);
     }
 
-    // Analyze results
     const newRequests = rscRequests.slice(beforeClicks);
     const homeRequests = newRequests.filter((requestUrl) => new URL(requestUrl).pathname === "/");
     const prefetchRequests = newRequests.filter((requestUrl) => new URL(requestUrl).pathname !== "/");
@@ -59,9 +55,6 @@ test.describe("Network RSC audit", () => {
       newRequests.forEach((requestUrl, requestIndex) => console.log(`  ${requestIndex + 1}. ${new URL(requestUrl).pathname}`));
     }
 
-    // With cacheComponents (PPR), each client-side navigation may trigger an RSC
-    // request — the server responds from 'use cache' instantly, but the request
-    // still appears on the wire. We verify the count stays bounded (≤ clicks).
     expect(homeRequests.length).toBeLessThanOrEqual(4);
   });
 
@@ -78,7 +71,6 @@ test.describe("Network RSC audit", () => {
       }
     });
 
-    // Navigate: / → /products → / → /products → /
     const routes = ["/", "/products", "/", "/products", "/"];
 
     await page.goto(routes[0]);
@@ -99,7 +91,6 @@ test.describe("Network RSC audit", () => {
     console.log(`\n=== TOTAL: ${total} RSC requests ===`);
     console.log("By route:", JSON.stringify(rscByRoute, null, 2));
 
-    // Home should not have more than 5 fetches (initial prefetch + navs + product link prefetches)
     expect(rscByRoute["/"] || 0).toBeLessThanOrEqual(5);
   });
 });

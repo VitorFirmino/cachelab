@@ -10,7 +10,6 @@ test.describe("API Routes", () => {
   });
 
   test("GET /api/products?id retorna produto", async ({ request }) => {
-    // First get a valid product id from the list
     const listRes = await request.get("/api/products");
     const listJson = await listRes.json();
     const firstId = listJson.data.items[0]?.id;

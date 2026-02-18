@@ -4,13 +4,13 @@ test.describe("Navegação", () => {
   test("Nav links funcionam", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("link", { name: "Produtos" }).first().click();
+    await page.locator('header a[href="/products"]').first().click();
     await expect(page).toHaveURL(/\/products/);
 
-    await page.getByRole("link", { name: "Início" }).first().click();
+    await page.locator('header a[href="/"]').first().click();
     await expect(page).toHaveURL("/");
 
-    await page.getByRole("link", { name: "Admin" }).first().click();
+    await page.locator('header a[href="/admin"]').first().click();
     await expect(page).toHaveURL(/\/login/);
   });
 
@@ -38,14 +38,11 @@ test.describe("Navegação", () => {
 
   test("/stats redireciona corretamente", async ({ page }) => {
     const response = await page.goto("/stats");
-    // /stats → /admin/stats → middleware may redirect to /login if not authenticated
     const url = page.url();
     const isAdminStats = /\/admin\/stats/.test(url);
     const isLogin = /\/login/.test(url);
     const isStats = /\/stats/.test(url);
-    // Should redirect somewhere (admin/stats, login, or at least acknowledge /stats)
     expect(isAdminStats || isLogin || isStats).toBeTruthy();
-    // Should not be a 500 error
     expect(response?.status()).not.toBe(500);
   });
 });

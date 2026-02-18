@@ -20,7 +20,6 @@ test.describe("Product page caching", () => {
     console.log(`\nProduct prefetches on load: ${productPrefetches.length}`);
     console.log(`Total RSC requests on load: ${rscRequests.length}`);
 
-    // With PrefetchLink (prefetch={false}), zero product prefetches on page load
     expect(productPrefetches.length).toBe(0);
   });
 
@@ -40,7 +39,6 @@ test.describe("Product page caching", () => {
     await page.waitForTimeout(3000);
     const afterLoad = rscRequests.length;
 
-    // Hover over product card — triggers router.prefetch()
     const productCard = page.locator('a[href^="/product/"]').first();
     const productHref = await productCard.getAttribute("href");
     console.log(`\nTarget: ${productHref}`);
@@ -51,16 +49,13 @@ test.describe("Product page caching", () => {
     const hoverRequests = rscRequests.slice(afterLoad).filter((requestEntry) => requestEntry.pathname === productHref);
     console.log(`After hover: ${hoverRequests.length} prefetch request(s)`);
 
-    // Click to navigate
     await productCard.click();
     await page.waitForTimeout(3000);
     console.log(`URL after click #1: ${page.url()}`);
 
-    // Go back
     await page.locator('header a[href="/products"]').first().click();
     await page.waitForTimeout(2000);
 
-    // Click same product again — should use Router Cache
     const beforeClick2 = rscRequests.length;
     await page.locator(`a[href="${productHref}"]`).first().click();
     await page.waitForTimeout(3000);
@@ -69,7 +64,6 @@ test.describe("Product page caching", () => {
     const click2Requests = rscRequests.slice(beforeClick2).filter((requestEntry) => requestEntry.pathname === productHref);
     console.log(`After click #2: ${click2Requests.length} RSC request(s) (should be 0 = cached)`);
 
-    // Go back, click third time
     await page.locator('header a[href="/products"]').first().click();
     await page.waitForTimeout(2000);
 
@@ -80,9 +74,6 @@ test.describe("Product page caching", () => {
     const click3Requests = rscRequests.slice(beforeClick3).filter((requestEntry) => requestEntry.pathname === productHref);
     console.log(`After click #3: ${click3Requests.length} RSC request(s) (should be 0 = cached)`);
 
-    // With cacheComponents (PPR), prefetch may not produce a visible RSC request
-    // (the static shell is inlined). Repeated clicks may trigger RSC requests but
-    // the server responds from 'use cache' instantly.
     expect(hoverRequests.length).toBeGreaterThanOrEqual(0);
     expect(click2Requests.length).toBeLessThanOrEqual(1);
     expect(click3Requests.length).toBeLessThanOrEqual(1);

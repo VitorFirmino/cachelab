@@ -44,7 +44,6 @@ test.describe("Páginas Públicas", () => {
   });
 
   test("Product detail carrega", async ({ page }) => {
-    // Get a real product id from the products page
     await page.goto("/products");
     const firstLink = page.locator("a[href^='/product/']").first();
     await expect(firstLink).toBeVisible();
@@ -53,7 +52,7 @@ test.describe("Páginas Públicas", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.locator("h1")).toBeVisible();
     await expect(page.getByText("R$").first()).toBeVisible();
-    await expect(page.getByText(/unidades/)).toBeVisible();
+    await expect(page.getByText(/\d+\s+unidades/).first()).toBeVisible();
   });
 
   test("Product detail mostra breadcrumb", async ({ page }) => {

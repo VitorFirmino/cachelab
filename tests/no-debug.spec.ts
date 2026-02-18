@@ -3,7 +3,6 @@ import { test, expect } from "@playwright/test";
 test.describe("Sem Debug em Páginas Públicas", () => {
   test("Home sem texto de debug interno", async ({ page }) => {
     await page.goto("/");
-    // Check only main content area (body includes RSC scripts with internal terms)
     const mainText = await page.locator("main").textContent();
     for (const term of ["fetch cache", "edge cache", "unstable_cache"]) {
       expect(mainText).not.toContain(term);
