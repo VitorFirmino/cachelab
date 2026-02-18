@@ -4,6 +4,8 @@ interface CacheEntry<T = unknown> {
   timestamp: number;
 }
 
+const CACHE_CLEAR_BROADCAST_KEY = "cachelab:cache-clear";
+
 let hits = 0;
 let misses = 0;
 const store = new Map<string, CacheEntry>();
@@ -33,16 +35,43 @@ export function cacheSet<T>(key: string, data: T, ttlMs: number): void {
 
 let version = 0;
 const listeners = new Set<() => void>();
+let storageSyncInitialized = false;
+
+function emitVersionUpdate() {
+  version++;
+  for (const listener of listeners) listener();
+}
+
+function ensureCrossTabSync() {
+  if (storageSyncInitialized || typeof window === "undefined") return;
+  storageSyncInitialized = true;
+
+  window.addEventListener("storage", (event) => {
+    if (event.key !== CACHE_CLEAR_BROADCAST_KEY || !event.newValue) return;
+    store.clear();
+    hits = 0;
+    misses = 0;
+    emitVersionUpdate();
+  });
+}
 
 export function cacheClear(): void {
   store.clear();
   hits = 0;
   misses = 0;
-  version++;
-  for (const listener of listeners) listener();
+  emitVersionUpdate();
+
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(CACHE_CLEAR_BROADCAST_KEY, `${Date.now()}`);
+    } catch {
+      // Ignore storage write failures (private mode / quota / disabled storage).
+    }
+  }
 }
 
 export function cacheSubscribe(listener: () => void) {
+  ensureCrossTabSync();
   listeners.add(listener);
   return () => { listeners.delete(listener); };
 }

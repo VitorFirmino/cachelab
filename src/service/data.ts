@@ -10,7 +10,7 @@ type CatalogProductResponse = { product: Product | null };
 type CatalogEventsResponse = { events: Event[] };
 type CatalogCategoriesResponse = { categories: Category[] };
 
-export async function getFeaturedProducts(limit = 6) {
+export async function getFeaturedProducts(limit = 6, cacheBust?: string) {
   "use cache";
   cacheLife(await getCacheTTL("featured"));
   cacheTag("featured", "products");
@@ -18,6 +18,7 @@ export async function getFeaturedProducts(limit = 6) {
     const result = await invokeSupabaseFunction<CatalogFeaturedResponse>("catalog", {
       op: "featured",
       limit,
+      cacheBust,
     });
     return result.products;
   } catch {
@@ -56,7 +57,7 @@ export async function getProductsPage({
   }
 }
 
-export async function getProductById(id: number) {
+export async function getProductById(id: number, cacheBust?: string) {
   "use cache";
   cacheLife(await getCacheTTL("product"));
   cacheTag("product", "products", `product:${id}`);
@@ -64,6 +65,7 @@ export async function getProductById(id: number) {
     const result = await invokeSupabaseFunction<CatalogProductResponse>("catalog", {
       op: "productById",
       id,
+      cacheBust,
     });
     return result.product;
   } catch {
@@ -71,7 +73,7 @@ export async function getProductById(id: number) {
   }
 }
 
-export async function getProductEvents(productId: number, limit = 5) {
+export async function getProductEvents(productId: number, limit = 5, cacheBust?: string) {
   "use cache";
   cacheLife(await getCacheTTL("events"));
   cacheTag("events", `product:${productId}`);
@@ -80,6 +82,7 @@ export async function getProductEvents(productId: number, limit = 5) {
       op: "productEvents",
       productId,
       limit,
+      cacheBust,
     });
     return result.events;
   } catch {
