@@ -46,7 +46,7 @@ export function ProductsClient({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [currentCategoryId, setCurrentCategoryId] = useState(initialCategoryId);
   const [currentQuery, setCurrentQuery] = useState(initialQuery);
-  const [requestNonce] = useState(initialRequestNonce);
+  const [requestNonce, setRequestNonce] = useState(initialRequestNonce);
   const [inputValue, setInputValue] = useState(initialQuery);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
@@ -66,6 +66,14 @@ export function ProductsClient({
   const total = productsData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const cats = categories ?? [];
+
+  useEffect(() => {
+    setCurrentPage(initialPage);
+    setCurrentCategoryId(initialCategoryId);
+    setCurrentQuery(initialQuery);
+    setInputValue(initialQuery);
+    setRequestNonce(initialRequestNonce);
+  }, [initialPage, initialCategoryId, initialQuery, initialRequestNonce]);
 
   useEffect(() => {
     const url = buildUrl({
@@ -235,7 +243,11 @@ export function ProductsClient({
                 return (
                   <PrefetchLink
                     key={product.id}
-                    href={`/product/${product.id}`}
+                    href={
+                      requestNonce
+                        ? `/product/${product.id}?_r=${encodeURIComponent(requestNonce)}`
+                        : `/product/${product.id}`
+                    }
                     className={`product-card block rounded-2xl border border-border bg-card backdrop-blur-xl animate-in delay-${Math.min(i + 2, 8)}`}
                   >
                     <div className="card-shine" />

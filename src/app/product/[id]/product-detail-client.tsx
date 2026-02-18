@@ -10,15 +10,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCategoryIcon } from "@/lib/constants";
 import { useProduct } from "@/hooks/use-product";
 import { useCartStore } from "@/store/cart-store";
+import { LocalTime } from "@/components/local-time";
 import type { ProductDetailData } from "@/lib/types";
 
 interface ProductDetailClientProps {
   productId: number;
   initialData: ProductDetailData;
+  requestNonce?: string;
 }
 
-export function ProductDetailClient({ productId, initialData }: ProductDetailClientProps) {
-  const { data } = useProduct(productId, initialData);
+export function ProductDetailClient({ productId, initialData, requestNonce }: ProductDetailClientProps) {
+  const { data } = useProduct(productId, initialData, requestNonce);
   const addItem = useCartStore((store) => store.addItem);
   const cartItems = useCartStore((store) => store.items);
 
@@ -113,8 +115,8 @@ export function ProductDetailClient({ productId, initialData }: ProductDetailCli
             </div>
             <div className="rounded-xl border border-border bg-card p-4 backdrop-blur-xl">
               <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Atualizado em</div>
-              <div className="text-sm font-mono text-foreground">{new Date(product.updatedAt).toISOString().split("T")[0]}</div>
-              <div className="text-xs font-mono text-muted-foreground mt-1">{new Date(product.updatedAt).toISOString().split("T")[1]?.slice(0, 8) ?? ""}</div>
+              <LocalTime date={product.updatedAt} format="date" className="text-sm font-mono text-foreground" />
+              <LocalTime date={product.updatedAt} format="time" className="text-xs font-mono text-muted-foreground mt-1 block" />
             </div>
           </div>
 
@@ -196,7 +198,7 @@ export function ProductDetailClient({ productId, initialData }: ProductDetailCli
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold text-sm text-accent-cyan">{event.type}</span>
                       <span className="text-xs text-muted-foreground font-mono ml-auto">
-                        {new Date(event.createdAt).toISOString().split("T")[1]?.slice(0, 8) ?? ""}
+                        <LocalTime date={event.createdAt} format="time" />
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">{event.message}</p>

@@ -3,8 +3,10 @@ import { getCategories, getProductsPage } from "@/service/data";
 import { ProductsClient } from "./products-client";
 
 interface ProductsContentProps {
-  searchParams: Promise<{ page?: string; category?: string; query?: string; q?: string; checkout?: string }>;
+  searchParams: Promise<{ page?: string; category?: string; query?: string; q?: string; checkout?: string; _r?: string }>;
 }
+
+const PRODUCTS_PAGE_SIZE = 6;
 
 export async function ProductsContent({ searchParams }: ProductsContentProps) {
   const resolvedParams = await searchParams;
@@ -21,11 +23,11 @@ export async function ProductsContent({ searchParams }: ProductsContentProps) {
     : NaN;
   const categoryId = Number.isFinite(category) ? category : undefined;
   const query = resolvedParams?.query?.trim() || resolvedParams?.q?.trim() || "";
-  const checkoutNonce = resolvedParams?.checkout?.trim();
-  const pageSize = 10;
+  const checkoutNonce = resolvedParams?.checkout?.trim() || resolvedParams?._r?.trim();
+  const pageSize = PRODUCTS_PAGE_SIZE;
 
   const [productsResult, categories] = await Promise.all([
-    getProductsPage({ page, pageSize, categoryId, query }),
+    getProductsPage({ page, pageSize, categoryId, query, cacheBust: checkoutNonce }),
     getCategories(),
   ]);
 
@@ -37,9 +39,11 @@ export async function ProductsContent({ searchParams }: ProductsContentProps) {
   }));
 
   const initialCategories = JSON.parse(JSON.stringify(categories));
+  const clientKey = `${page}:${categoryId ?? "all"}:${query}:${checkoutNonce ?? ""}`;
 
   return (
     <ProductsClient
+      key={clientKey}
       initialProducts={initialProducts}
       initialCategories={initialCategories}
       page={page}

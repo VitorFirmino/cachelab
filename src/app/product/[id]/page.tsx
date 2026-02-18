@@ -6,15 +6,18 @@ import { ProductDetailClient } from "./product-detail-client";
 
 interface ProductDetailPageProps {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ checkout?: string; _r?: string }>;
 }
 
-export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
+export default async function ProductDetailPage({ params, searchParams }: ProductDetailPageProps) {
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
+  const requestNonce = resolvedSearchParams?.checkout?.trim() || resolvedSearchParams?._r?.trim();
   const productId = Number(id);
 
   const [product, events] = await Promise.all([
-    getProductById(productId),
-    getProductEvents(productId, 5),
+    getProductById(productId, requestNonce),
+    getProductEvents(productId, 5, requestNonce),
   ]);
 
   if (!product) {
@@ -27,6 +30,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     <ProductDetailClient
       productId={productId}
       initialData={initialData}
+      requestNonce={requestNonce}
     />
   );
 }
